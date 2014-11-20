@@ -9,6 +9,7 @@ Implement CourseTab
 
 from abc import ABCMeta, abstractmethod
 from xblock.fields import List
+from django.conf import settings
 
 # We should only scrape strings for i18n in this file, since the target language is known only when
 # they are rendered in the template.  So ugettext gets called in the template.
@@ -198,6 +199,9 @@ class CourseTab(object):  # pylint: disable=incomplete-protocol
             'syllabus': SyllabusTab,
             'instructor': InstructorTab,  # not persisted
         }
+        # Learning analytics
+        if settings.FEATURES.get('ENABLE_LEARNING_ANALYTICS'):
+            sub_class_types['learning_analytics'] = LATab
 
         tab_type = tab_dict.get('type')
         if tab_type not in sub_class_types:
@@ -709,6 +713,28 @@ class InstructorTab(StaffTab):
             link_func=link_reverse_func('instructor_dashboard'),
         )
 
+class LATab(AuthenticatedCourseTab):
+    """
+    A tab containing learning analytics module.
+    """
+
+    type = 'learning_analytics'
+
+    def __init__(self, tab_dict=None):
+        super(LATab, self).__init__(
+            name=tab_dict['name'] if tab_dict else _('Learning Analytics'),
+            tab_id=self.type,
+            link_func=link_reverse_func(self.type),
+        )
+
+    def can_display(self, course, settings, is_user_authenticated, is_user_staff):
+        return (is_user_authenticated and 
+                settings.FEATURES.get('ENABLE_LEARNING_ANALYTICS'))
+
+    @classmethod
+    def validate(cls, tab_dict, raise_error=True):
+        return super(LATab, cls).validate(tab_dict, raise_error) and need_name(tab_dict, raise_error)
+
 
 class CourseTabList(List):
     """
@@ -810,6 +836,10 @@ class CourseTabList(List):
         instructor_tab = InstructorTab()
         if instructor_tab.can_display(course, settings, is_user_authenticated, is_user_staff, is_user_enrolled):
             yield instructor_tab
+        # Learning analytics
+        la_tab = LATab()
+        if la_tab.can_display(course, settings, is_user_authenticated, is_user_staff):
+            yield la_tab
 
     @staticmethod
     def iterate_displayable_cms(

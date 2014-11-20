@@ -75,3 +75,9 @@
 
 // discussion
 @import "course/discussion/form-wmd-toolbar";
+
+// Learning analytics
+% if env["FEATURES"].get("ENABLE_LEARNING_ANALYTICS", False):
+  // import LA Sass
+  @import "course/learning-analytics/learning_analytics";
+% endif

@@ -378,6 +378,12 @@ if settings.COURSEWARE_ENABLED:
         url(r'^account/', include('student_account.urls')),
         url(r'^profile/', include('student_profile.urls')),
     )
+    
+    # Learning analytics module if is enabled
+    if settings.FEATURES.get('ENABLE_LEARNING_ANALYTICS'):
+        urlpatterns += (
+            url(r'^courses/(?P<course_id>[^/]+/[^/]+/[^/]+)/learning_analytics$',
+            'learning_analytics.views.index', name="learning_analytics")),
 
     # allow course staff to change to student view of courseware
     if settings.FEATURES.get('ENABLE_MASQUERADE'):
