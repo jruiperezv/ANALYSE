@@ -1,0 +1,69 @@
+<%namespace name='static' file='/static_content.html'/>
+
+<!--Load the AJAX API-->
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+<!--Load test graph -->
+<%block name="js_extra">
+<script type="text/javascript" src="${static.url('js/learning_analytics/students_grades.js')}"></script>
+</%block>
+<script>
+	var STD_GRADES_DUMP='${std_grades_dump}';
+	var PASS_LIMIT='${pass_limit}';
+	var PROF_LIMIT='${prof_limit}';
+	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+</script>
+<section>
+	<div class="sidebar">
+		<h2>Students Grades</h2>
+		
+		
+		% if instructor_access or staff_access:
+		<p>
+			Show mean grade for all students in each chapter of the course. Click in one section in order to 
+			see subsection grades.
+		</p>
+		<br/>
+		<h5>Options</h5>
+		<select id="students_grades_options">
+			<option value="all" selected>All students</option>
+			<option value="student">Select student</option>
+			<option value="group">Select student group</option>
+		</select>
+		% else:
+		<p>
+			Show mean grade in each chapter of the course. Click in one section in order to 
+			see subsection grades.
+		</p>
+		<select id="students_grades_options" style='display:none'>
+			<option value="all">All students</option>
+			<option value="student" selected>Select student</option>
+			<option value="group">Select student group</option>
+		</select>
+		% endif
+		
+		<select id="students_grades_student" style='display:none'>
+			% for student in students:
+				<option value="${student['id']}">${student['name']}</option>
+			% endfor
+		</select>
+		
+		<select id="students_grades_group" style='display:none'>
+			<option value="prof">Proficiency students</option>
+			<option value="pass">Pass students</option>
+			<option value="fail">Fail students</option>
+		</select>
+	</div>
+	<!--Div that will hold the stacked bar chart-->
+	<div class="graph" id="students_grades_chart"></div>
+	
+	<div class="legend">
+		<h3 id="students_grades_legend_title"></h3>
+		<ul>
+			<li><span style='background:#297ACC;'></span>Proficiency</li>
+			<li><span style='background:#008F00;'></span>OK</li>
+			<li><span style='background:#B20000;'></span>Fail</li>
+			<li><span style='background:#B8B8B8;'></span>Not done</li>
+		</ul>
+	</div>
+</section>

@@ -1,0 +1,112 @@
+.profile-wrapper {
+  .learning-analytics {
+    @extend .content;
+
+    header {
+      @extend .clearfix;
+      @extend h1.top-header;
+      margin-bottom: lh();
+
+      h1 {
+        float: left;
+        font-size: 1em;
+        font-weight: 100;
+        margin: 0;
+      }
+    }
+
+    .visualizations {
+      border-top: 1px solid #e3e3e3;
+      margin-top: lh();
+      padding-left: 0;
+
+      section {
+        @extend .clearfix;
+        border-bottom: 1px solid #e3e3e3;
+        display: table;
+        padding: lh() 0;
+        width: 100%;
+        height: 300px;
+
+        &:last-child {
+          border-bottom: 0px;
+        }
+
+        .sidebar {
+          border-right: 1px dashed #ddd;
+          @include box-sizing(border-box);
+          display: table-cell;
+          letter-spacing: 0;
+          background-color: transparent;
+          margin: 0;
+          padding: 0;
+          padding-right: flex-gutter(9);
+          text-transform: none;
+          width: flex-grid(2,9);
+          
+          p {
+            text-align: justify;
+          }
+          
+          select {
+            width: 100%;
+          }
+        }
+        
+        .graph {
+          display: table-cell;
+          // padding-left: flex-gutter(9);
+          width: flex-grid(5,9);
+        }
+        
+        .legend {
+          border-left: 1px dashed #ddd;
+          @include box-sizing(border-box);
+          display: table-cell;
+          vertical-align: top;
+          letter-spacing: 0;
+          background-color: transparent;
+          margin: 0;
+          padding: 0;
+          padding-left: flex-gutter(9);
+
+          text-transform: none;
+          width: flex-grid(2,9);
+          
+          ul {
+            margin: 0;
+            margin-bottom: 5px;
+            margin-top: 15px;
+            padding: 0;
+            float: initial;
+            overflow-y: auto;
+            list-style: none;
+            
+            li {
+              font-size: 100%;
+              list-style: none;
+              height: 30px;
+              float: center;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              text-align: left;
+              margin-left: 0;
+              line-height: 30px;
+              margin-bottom: 5px;
+              
+              span {
+                display: block;
+                float: left;
+                height: 30px;
+                width: 30px;
+                margin-right: 5px;
+                margin-left: 0;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

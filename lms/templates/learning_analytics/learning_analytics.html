@@ -1,0 +1,46 @@
+<%! from django.utils.translation import ugettext as _ %>
+<%! import ast %>
+<%inherit file="../main.html" />
+<%namespace name='static' file='/static_content.html'/>
+
+<%block name="headextra">
+<%static:css group='style-course-vendor'/>
+<%static:css group='style-course'/>
+</%block>
+
+<%block name="pagetitle">${_("{course_number} Learning Analytics").format(course_number=course.display_number_with_default)}</%block>
+
+<%include file="/dashboard/_dashboard_prompt_midcourse_reverify.html" />
+
+<%include file="/courseware/course_navigation.html" args="active_page='learning_analytics'" />
+
+<div class="container">
+	<div class="profile-wrapper">
+		<div class="learning-analytics" >
+			<header>
+				<h1>${_("Analytics for course: {course}").format(course=course.display_name)}</h1>
+			</header>
+			% if instructor_access or staff_access:
+			<h2>Instructor learning analytics</h2>
+			% else:
+			<h2>Student learning analytics</h2>
+			% endif
+			<div class="visualizations">
+				% if instructor_access or staff_access:
+				
+				<%include file="course_sort_students.html" />
+				<%include file="students_grades.html" />
+				<%include file="chapter_time.html" />
+				<%include file="course_accesses.html" />
+
+				% else:
+				
+				<%include file="students_grades.html" />
+				<%include file="chapter_time.html" />
+				<%include file="course_accesses.html" />
+				
+				% endif
+			</div>
+		</div>
+	</div>
+</div>

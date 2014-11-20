@@ -1,0 +1,31 @@
+<%namespace name='static' file='/static_content.html'/>
+
+<!--Load the AJAX API-->
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<!--Load test graph -->
+<%block name="js_extra">
+<script type="text/javascript" src="${static.url('js/learning_analytics/course_sort_students.js')}"></script>
+</%block>
+<script>var SORT_STD_DUMP='${sort_std_dump}';</script>
+
+<section>
+	<div class="sidebar">
+		<h2>Sort Students</h2>
+		<p>
+			Show number of students that have pass, not pass, not done or have proficency grades in each category.
+			Click on a category in order to see the results in each section.
+		</p>
+	</div>
+	<!--Div that will hold the stacked bar chart-->
+	<div class="graph" id="chart_course_sort_students"></div>
+	
+	<div class="legend">
+		<h3 id="legend_title"></h3>
+		<ul>
+			<li><span style='background:#297ACC;'></span>Proficiency</li>
+			<li><span style='background:#008F00;'></span>OK</li>
+			<li><span style='background:#B20000;'></span>Fail</li>
+			<li><span style='background:#B8B8B8;'></span>Not done</li>
+		</ul>
+	</div>
+</section>
