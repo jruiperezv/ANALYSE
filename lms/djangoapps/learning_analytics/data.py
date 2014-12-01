@@ -24,7 +24,7 @@ def get_courses_list():
 	Return a list with all course modules
 	"""
 	return modulestore().get_courses()
-	
+
 def get_course_key(course_id):
     """
     Return course opaque key from olf course ID
@@ -376,7 +376,7 @@ def get_problem_score(course_key, user, problem_descriptor):
             return (correct, total)
         if correct is not None:
             correct = correct * weight / total
-        total = weigh
+        total = weight
         
     return (correct, total)
    

@@ -35,7 +35,6 @@ var LA_course_accesses = (function(){
 	var drawChart = function() {
 
 		if(data == null){
-
 			// Default data
 			ca_json = JSON.parse(ACCESS_DUMP.replace(/&quot;/ig,'"'))[getSelectedUser()];
 			var access_array = [['Chapter','Accesses', { role: 'style' }],];

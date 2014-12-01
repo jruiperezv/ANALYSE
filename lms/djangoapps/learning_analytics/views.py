@@ -12,6 +12,7 @@ from courseware.masquerade import setup_masquerade
 from courseware.models import StudentModule
 from courseware.courses import get_course_with_access, get_studio_url
 from courseware.views import fetch_reverify_banner_info
+import logging
 
 # Create your views here.
 
@@ -44,6 +45,8 @@ def index(request, course_id):
         students_grades = get_DB_student_grades(course_key)
         cs, sa = course_accesses = get_DB_course_section_accesses(course_key)
         students_course_accesses = course_accesses_to_js(cs, sa)
+        
+        logging.error(dumps(students_course_accesses))
         
         context = {'course': course,
                    'request': request,

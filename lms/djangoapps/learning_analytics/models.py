@@ -107,3 +107,22 @@ class StudentGrades(models.Model):
     
     class Meta:
         unique_together = (('student_id', 'course_id'),)
+        
+        
+class TimeSchedule(models.Model):
+    # Constants for student_id
+    ALL_STUDENTS = -1
+    PROF_GROUP = -2
+    PASS_GROUP = -3
+    FAIL_GROUP = -4
+    
+    # Data
+    student_id = models.IntegerField()
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    time_schedule = models.TextField(default='')
+    
+    # Date
+    last_calc = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = (('student_id', 'course_id'),)
