@@ -8,8 +8,9 @@
 <script type="text/javascript" src="${static.url('js/learning_analytics/chapter_time.js')}"></script>
 </%block>
 <script>
-	var TIME_DUMP='${time_dump}';
+	var TIME_DUMP=JSON.parse('${time_dump}'.replace(/&quot;/ig,'"'));
 	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+	var COURSE_ID='${course_id}';
 </script>
 <section>
 	<div class="sidebar">

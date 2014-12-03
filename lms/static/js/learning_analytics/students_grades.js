@@ -1,7 +1,8 @@
 // Load the Visualization API and the piechart package.
 google.load('visualization', '1.0', {'packages':['corechart']});
 
-var LA_students_grades = (function(){
+var LA_student_grades = (function(){
+	var CHART_ID = 1;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;
@@ -27,8 +28,12 @@ var LA_students_grades = (function(){
 	var drawChart = function() {
 
 		if(data == null){
-			// Parse JSON
-			all_sections = JSON.parse(STD_GRADES_DUMP.replace(/&quot;/ig,'"'))[getSelectedUser()];
+			all_sections = STD_GRADES_DUMP[getSelectedUser()];
+
+			if(all_sections == null){
+				updateChart();
+				return;
+			}
 			wss = all_sections['weight_subsections'];
 			gs = all_sections['graded_sections'];
 			
@@ -132,6 +137,52 @@ var LA_students_grades = (function(){
 		document.getElementById('students_grades_legend_title').innerHTML = category;
 	};
 	
+	var updateChart = function(event) {
+		var sel_user = getSelectedUser();
+		
+		$.ajax({
+			// the URL for the request
+			url: "/courses/learning_analytics/chart_update",
+			
+			// the data to send (will be converted to a query string)
+			data: {
+				user_id   : sel_user,
+				course_id : COURSE_ID,
+				chart : CHART_ID
+			},
+			
+			// whether to convert data to a query string or not
+			// for non convertible data should be set to false to avoid errors
+			processData: true,
+			
+			// whether this is a POST or GET request
+			type: "GET",
+			
+			// the type of data we expect back
+			dataType : "json",
+			
+			// code to run if the request succeeds;
+			// the response is passed to the function
+			success: function( json ) {
+				STD_GRADES_DUMP = json;
+				change_data();
+			},
+		
+			// code to run if the request fails; the raw request and
+			// status codes are passed to the function
+			error: function( xhr, status, errorThrown ) {
+				// TODO dejar selectores como estaban
+				console.log( "Error: " + errorThrown );
+				console.log( "Status: " + status );
+				console.dir( xhr );
+			},
+		
+			// code to run regardless of success or failure
+			complete: function( xhr, status ) {
+			}      
+		});
+	};
+	
 	var getSelectedUser = function(){
 		var selectOptions = document.getElementById('students_grades_options');
 		var selectStudent = document.getElementById('students_grades_student');
@@ -180,17 +231,17 @@ var LA_students_grades = (function(){
 				case "all":
 					selectStudent.style.display="none";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "student":
 					selectStudent.style.display="";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "group":
 					selectStudent.style.display="none";
 					selectGroup.style.display="";
-					change_data();
+					updateChart();
 					break;
 			}
 			if(!SU_ACCESS){
@@ -201,11 +252,11 @@ var LA_students_grades = (function(){
 		};
 		
 		selectStudent.onchange = function(){
-			change_data(selectStudent.options[selectStudent.selectedIndex].value);
+			updateChart();
 		};
 		
 		selectGroup.onchange = function(){
-			change_data(selectGroup.options[selectGroup.selectedIndex].value);
+			updateChart();
 		};
 	};
 	
@@ -217,7 +268,7 @@ var LA_students_grades = (function(){
 		gs = null;
 		wss_array = null;
 		expanded = false;
-		LA_students_grades.drawChart();
+		LA_student_grades.drawChart();
 	};
 	
 	return {
@@ -226,4 +277,4 @@ var LA_students_grades = (function(){
 })();
 
 // Set a callback to run when the Google Visualization API is loaded.
-google.setOnLoadCallback(LA_students_grades.drawChart);
+google.setOnLoadCallback(LA_student_grades.drawChart);

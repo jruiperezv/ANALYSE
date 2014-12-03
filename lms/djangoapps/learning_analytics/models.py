@@ -17,6 +17,7 @@ class CourseStruct(models.Model):
     father = models.ForeignKey('self', limit_choices_to={'section_type': 'chapter'}, blank=True, null=True)
     # Data
     graded = models.BooleanField(default=False)
+    released = models.BooleanField(default=False)
     
     class Meta:
         unique_together = (('module_state_key', 'course_id'),)
@@ -46,7 +47,7 @@ class SortGrades(models.Model):
     # Date
     last_calc = models.DateTimeField(auto_now=True)
     class Meta:
-        unique_together = (('label', 'course_id'),)
+        unique_together = (('label', 'course_id', 'sort_type'),)
 
 class CourseTime(models.Model):
     # Constants for student_id

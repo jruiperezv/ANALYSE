@@ -1,0 +1,59 @@
+<%namespace name='static' file='/static_content.html'/>
+
+<!--Load the AJAX API-->
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+<!--Load test graph -->
+<%block name="js_extra">
+<script type="text/javascript" src="${static.url('js/learning_analytics/students_time_schedule.js')}"></script>
+</%block>
+<script>
+	var STD_SCHEDULE_DUMP=JSON.parse('${std_time_schedule_dumb}'.replace(/&quot;/ig,'"'));
+	var PASS_LIMIT='${pass_limit}';
+	var PROF_LIMIT='${prof_limit}';
+	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+	var COURSE_ID='${course_id}';
+</script>
+<section>
+	<div class="sidebar">
+		<h2>Students Time Schedule</h2>
+		
+		
+		% if instructor_access or staff_access:
+		<p>
+			Shows the time spent by the student in the platform in three different time intervals. Morning, afternoon and night.
+		</p>
+		<br/>
+		<h5>Options</h5>
+		<select id="students_schedule_options">
+			<option value="all" selected>All students</option>
+			<option value="student">Select student</option>
+		</select>
+		% else:
+		<p>
+			Shows the time spent by the student in the platform in three different time intervals. Morning, afternoon and night.
+		</p>
+		<select id="students_schedule_options" style='display:none'>
+			<option value="all">All students</option>
+			<option value="student" selected>Select student</option>
+		</select>
+		% endif
+		
+		<select id="students_schedule_student" style='display:none'>
+			% for student in students:
+				<option value="${student['id']}">${student['name']}</option>
+			% endfor
+		</select>
+		
+	</div>
+	<!--Div that will hold the stacked bar chart-->
+	<div class="graph" id="students_time_schedule_chart"></div>
+	<div class="legend">
+		<h3 id="students_schedule_legend_title"></h3>
+		<ul>
+			<li><span style='background:#C9C96C;'></span>Morning Time</li>
+			<li><span style='background:#7F7160;'></span>Afternoon Time</li>
+			<li><span style='background:#50587C;'></span>Night Time</li>
+		</ul>
+	</div>
+</section>

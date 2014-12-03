@@ -8,12 +8,15 @@
 <script type="text/javascript" src="${static.url('js/learning_analytics/course_accesses.js')}"></script>
 </%block>
 <script>
-	var ACCESS_DUMP='${accesses_dump}';
+	var ACCESS_DUMP=JSON.parse('${accesses_dump}'.replace(/&quot;/ig,'"'));
+	console.log(ACCESS_DUMP);
 	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+	var COURSE_ID='${course_id}';
 </script>
 <section>
 	<div class="sidebar">
 		<h2>Course Accesses</h2>
+		
 		
 		% if instructor_access or staff_access:
 		<p>

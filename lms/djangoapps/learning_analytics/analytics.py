@@ -15,8 +15,15 @@ import ast
 
 INACTIVITY_TIME = 600  # Time considered inactivity
 
+
+##########################################################################
 ######################## COURSE STRUCT ###################################
+##########################################################################
+
 def update_DB_course_struct(course_key):
+    """
+    Saves course structure to database
+    """
     # Get course
     course = get_course_module(course_key)
     # Create return structure
@@ -35,12 +42,14 @@ def update_DB_course_struct(course_key):
                                       name=chapter['name'],
                                       section_type='chapter',
                                       graded=chapter['graded'],
+                                      released=chapter['released'],
                                       index=chapter_index)
         else:
             # Update entry
             chapters_sql.filter(module_state_key=chapter['id']).update(name=chapter['name'],
                                                                        section_type='chapter',
                                                                        graded=chapter['graded'],
+                                                                       released=chapter['released'],
                                                                        index=chapter_index)
         # Sequentials
         seq_index = 1
@@ -54,12 +63,14 @@ def update_DB_course_struct(course_key):
                                             section_type='sequential',
                                             father=chapters_sql.get(module_state_key=chapter['id']),
                                             graded=sequential['graded'],
+                                            released=sequential['released'],
                                             index=seq_index)
             else:
                 # Update entry
                 chapt_seq_sql.filter(module_state_key=sequential['id']).update(name=sequential['name'],
                                                                                section_type='sequential',
                                                                                graded=sequential['graded'],
+                                                                               released=sequential['released'],
                                                                                index=seq_index)
             seq_index = seq_index + 1
             
@@ -75,21 +86,33 @@ def update_DB_course_struct(course_key):
                                                 section_type='vertical',
                                                 father=sequentials_sql.get(module_state_key=sequential['id']),
                                                 graded=vertical['graded'],
+                                                released=vertical['released'],
                                                 index=vert_index)
                 else:
                     # Update entry
                     seq_vert_sql.filter(module_state_key=vertical['id']).update(name=vertical['name'],
                                                                                 section_type='vertical',
                                                                                 graded=vertical['graded'],
+                                                                                released=vertical['released'],
                                                                                 index=vert_index)
                 vert_index = vert_index + 1
         chapter_index = chapter_index + 1
     
     
-def get_DB_course_struct(course_key, include_verticals=False):
-    # Course struct
+def get_DB_course_struct(course_key, include_verticals=False, include_unreleased=True):
+    """
+    Gets course structure from database
+    
+    course_key: course locator
+    include_verticals: if true, the result will include verticals
+    incluse_unreleased: if true, the result will include unreleased sections
+    """
+     # Course struct
     course_struct = []
-    sql_struct = CourseStruct.objects.filter(course_id=course_key)
+    if include_unreleased:
+        sql_struct = CourseStruct.objects.filter(course_id=course_key)
+    else:
+        sql_struct = CourseStruct.objects.filter(course_id=course_key, released=True)
     
     num_ch = sql_struct.filter(section_type='chapter').count()
     for i in range(1, num_ch + 1):
@@ -143,99 +166,10 @@ def get_DB_course_struct(course_key, include_verticals=False):
         course_struct.append(ch_cont)
     return course_struct
 
+
+#################################################################################
 ######################## SORT COURSE STUDENTS VISUALIZATION #####################
-def sort_course_homework_old(course_key):
-    """
-    Sort number of students that haven't done, have fail, have done ok, or
-    have done very good each homework of a given course
-    """
-    
-    course = get_course_module(course_key)
-    
-    pass_limit = get_course_grade_cutoff(course)
-    proficiency_limit = (1 - pass_limit) / 2 + pass_limit
-
-    # Obtain students id in the course and get their User object
-    students = get_course_students(course_key)
-    num_students = students.count()
-    # Obtain all sections with their released problems from grading_context
-    full_gc = dump_full_grading_context(course)
-    
-    # Fill sort_homework
-    sort_homework = {'graded_sections':[],
-                     'weight_subsections':[]}
-    weight_data = {}
-    index = 0
-    for subsection in full_gc['weight_subsections']:
-        sort_homework['weight_subsections'].append({'category': subsection['category'], 'NOT': 0,
-                                                    'FAIL': 0, 'OK': 0, 'PROFICIENCY': 0})
-        weight_data[subsection['category']] = {'index': index, 'score': None, 'total': 0, 'weight': subsection['weight']}
-        index += 1
-        
-    for section in full_gc['graded_sections']:
-        if section['released']:
-            sort_homework['graded_sections'].append({'category': section['category'], 'label': section['label'],
-                                                     'name': section['name'], 'NOT': 0, 'FAIL': 0,
-                                                     'OK': 0, 'PROFICIENCY': 0})
-            # Add total released
-            weight_data[section['category']]['total'] += section['max_grade']
-        else:
-            sort_homework['graded_sections'].append({'category': section['category'], 'label': section['label'],
-                                                     'name': section['name'], 'NOT': num_students, 'FAIL': 0,
-                                                     'OK': 0, 'PROFICIENCY': 0})
-    
-             
-    for student in students:
-        # Sort each homework into its category
-        i = 0
-        for section in full_gc['graded_sections']:
-            if section['released']:
-                total_grade = 0
-                done = False
-                for problem in section['problems']:
-                    grade = get_problem_score(course_key, student, problem)[0]  # Get only grade
-                    if grade is not None:
-                        total_grade += grade
-                        done = True
-                
-                if section['max_grade'] > 0:
-                    percent = total_grade / section['max_grade']
-                else:
-                    percent = 0
-                if done:
-                    # Add grade to weight subsection
-                    if weight_data[section['category']]['score'] is None:
-                        weight_data[section['category']]['score'] = total_grade
-                    else:
-                        weight_data[section['category']]['score'] += total_grade
-                        
-                    if percent < pass_limit:
-                        sort_homework['graded_sections'][i]['FAIL'] += 1
-                    elif percent < proficiency_limit:
-                        sort_homework['graded_sections'][i]['OK'] += 1
-                    else:
-                        sort_homework['graded_sections'][i]['PROFICIENCY'] += 1
-                else:
-                    sort_homework['graded_sections'][i]['NOT'] += 1
-            i += 1
-            
-        # Sort grades for weight subsections
-        for subsection in sort_homework['weight_subsections']:
-            if weight_data[subsection['category']]['score'] is None:
-                subsection['NOT'] += 1
-            else:
-                percent = (weight_data[subsection['category']]['score'] / 
-                           weight_data[subsection['category']]['total'])
-                if percent < pass_limit:
-                    subsection['FAIL'] += 1
-                elif percent < proficiency_limit:
-                    subsection['OK'] += 1
-                else:
-                    subsection['PROFICIENCY'] += 1
-            # Clean score
-            weight_data[subsection['category']]['score'] = None
-
-    return sort_homework
+#################################################################################
 
 def sort_course_homework(course_key):
     """
@@ -255,16 +189,22 @@ def sort_course_homework(course_key):
     sort_homework = {'graded_sections':[],
                      'weight_subsections':[]}
     
+    for section in full_gc['graded_sections']:
+        if section['released']:
+            sort_homework['graded_sections'].append({'category': section['category'], 'label': section['label'],
+                                                     'name': section['name'], 'NOT': 0, 'FAIL': 0,
+                                                     'OK': 0, 'PROFICIENCY': 0})
+    
     for subsection in full_gc['weight_subsections']:
-        sort_homework['weight_subsections'].append({'category': subsection['category'], 'NOT': 0,
-                                                    'FAIL': 0, 'OK': 0, 'PROFICIENCY': 0})
+        for grad_section in sort_homework['graded_sections']:
+            if grad_section['category'] == subsection['category']:
+                sort_homework['weight_subsections'].append({'category': subsection['category'], 'NOT': 0,
+                                                            'FAIL': 0, 'OK': 0, 'PROFICIENCY': 0})
+                break
+            
     sort_homework['weight_subsections'].append({'category': 'Total', 'NOT': 0,
                                                 'FAIL': 0, 'OK': 0, 'PROFICIENCY': 0})
     
-    for section in full_gc['graded_sections']:
-        sort_homework['graded_sections'].append({'category': section['category'], 'label': section['label'],
-                                                 'name': section['name'], 'NOT': 0, 'FAIL': 0,
-                                                 'OK': 0, 'PROFICIENCY': 0})
 
     student_grades = (StudentGrades.objects.filter(course_id=course_key)
                       .filter(~Q(student_id=StudentGrades.ALL_STUDENTS))
@@ -276,7 +216,7 @@ def sort_course_homework(course_key):
         grades = ast.literal_eval(student_grade.grades)
         
         for i in range(len(grades['graded_sections'])):
-            if grades['graded_sections'][i]['done']:
+            if grades['graded_sections'][i]['done'] and grades['graded_sections'][i]['total'] > 0:
                 percent = grades['graded_sections'][i]['score'] / grades['graded_sections'][i]['total']
                 if percent >= proficiency_limit:
                     sort_homework['graded_sections'][i]['PROFICIENCY'] += 1
@@ -288,7 +228,7 @@ def sort_course_homework(course_key):
                 sort_homework['graded_sections'][i]['NOT'] += 1
         
         for j in range(len(grades['weight_subsections'])):
-            if grades['weight_subsections'][j]['done']:
+            if grades['weight_subsections'][j]['done'] and grades['weight_subsections'][j]['total'] > 0:
                 percent = grades['weight_subsections'][j]['score'] / grades['weight_subsections'][j]['total']
                 if percent >= proficiency_limit:
                     sort_homework['weight_subsections'][j]['PROFICIENCY'] += 1
@@ -325,6 +265,7 @@ def update_DB_sort_course_homework(course_key):
                 
     # Add data
     for subsection in sort_homework['weight_subsections']:
+        
         if (ws_sql.count() == 0 or 
                ws_sql.filter(label=subsection['category']).count() == 0):
             # Create entry
@@ -368,6 +309,7 @@ def update_DB_sort_course_homework(course_key):
                 
     # Add data
     for section in sort_homework['graded_sections']:
+        
         if (gs_sql.count() == 0 or 
                gs_sql.filter(label=section['label']).count() == 0):
             # Create entry
@@ -379,8 +321,7 @@ def update_DB_sort_course_homework(course_key):
                                       num_not=section['NOT'],
                                       num_fail=section['FAIL'],
                                       num_pass=section['OK'],
-                                      num_prof=section['PROFICIENCY']
-                                      )
+                                      num_prof=section['PROFICIENCY'])
         else:
             # Update entry
             entry = gs_sql.filter(label=section['label']);
@@ -423,15 +364,22 @@ def get_DB_sort_course_homework(course_key):
         
     return sort_homework
         
+        
+###################################################################
+############### STUDENTS GRADES VISUALIZATION #####################
 ###################################################################
 
-############### STUDENTS GRADES VISUALIZATION #####################
-
-def get_student_grades(course_key, student, full_gc, sort_homework=None, weight_data=None):
+def get_student_grades(course_key, student, full_gc=None, sort_homework=None, weight_data=None):
+    """
+    Get student grades for given student and course
+    """
     
+    if full_gc is None:
+        full_gc = dump_full_grading_context(get_course_module(course_key))
+        
     if (sort_homework is None or weight_data is None):
         sort_homework, weight_data = get_student_grades_course_struct(full_gc)
-        
+
     # Sort each homework into its category
     i = 0
     for section in full_gc['graded_sections']:
@@ -454,10 +402,11 @@ def get_student_grades(course_key, student, full_gc, sort_homework=None, weight_
                 sort_homework['graded_sections'][i]['score'] = total_grade
             else:
                 sort_homework['graded_sections'][i]['done'] = False
-        i += 1
+            i += 1
              
     # Sort grades for weight subsections
     total_score = 0
+    total_weight = 0
     for subsection in sort_homework['weight_subsections']:
         if weight_data[subsection['category']]['score'] is None:
             subsection['done'] = False
@@ -466,12 +415,14 @@ def get_student_grades(course_key, student, full_gc, sort_homework=None, weight_
         
         if subsection['score'] is not None:
             total_score += (subsection['score'] / subsection['total']) * subsection['weight']
+        
+        total_weight += subsection['weight']
         # Clean score
         weight_data[subsection['category']]['score'] = None
         
     sort_homework['weight_subsections'].append({'category': 'Total',
                                                 'weight': 1,
-                                                'total': 1,
+                                                'total': total_weight,
                                                 'score': total_score,
                                                 'done': True })
  
@@ -487,14 +438,17 @@ def get_student_grades_course_struct(full_gc):
     weight_data = {}
     index = 0
     for subsection in full_gc['weight_subsections']:
-        sort_homework['weight_subsections'].append({'category': subsection['category'],
-                                                    'weight': subsection['weight'],
-                                                    'total': 0,
-                                                    'score': None,
-                                                    'done': True})
-        weight_data[subsection['category']] = {'index': index, 'score': None, 'total': 0,
-                                               'weight': subsection['weight']}
-        index += 1
+        for grad_section in full_gc['graded_sections']:
+            if grad_section['released'] and grad_section['category'] == subsection['category']:
+                sort_homework['weight_subsections'].append({'category': subsection['category'],
+                                                            'weight': subsection['weight'],
+                                                            'total': 0,
+                                                            'score': None,
+                                                            'done': True})
+                weight_data[subsection['category']] = {'index': index, 'score': None, 'total': 0,
+                                                       'weight': subsection['weight']}
+                index += 1
+                break
          
     for section in full_gc['graded_sections']:
         if section['released']:
@@ -506,17 +460,14 @@ def get_student_grades_course_struct(full_gc):
                                                      'done': True })
             # Add total released
             weight_data[section['category']]['total'] += section['max_grade']
-        else:
-            sort_homework['graded_sections'].append({'category': section['category'],
-                                                     'label': section['label'],
-                                                     'name': section['name'],
-                                                     'total': section['max_grade'],
-                                                     'score': None,
-                                                     'done': False })
+     
     return sort_homework, weight_data
 
 
 def update_DB_student_grades(course_key):
+    """
+    Update students grades for given course
+    """
     # Update student grade
     course = get_course_module(course_key)
     students = get_course_students(course_key)
@@ -555,12 +506,19 @@ def update_DB_student_grades(course_key):
     pass_limit = get_course_grade_cutoff(course)
     proficiency_limit = (1 - pass_limit) / 2 + pass_limit
     
+    ## TODO CHAPUZA!!!
+    total_aux = 0
+    
     for student in students:
         std_grades = get_student_grades(course_key, student, full_gc,
                                         copy.deepcopy(sort_homework_std),
                                         copy.deepcopy(weight_data_std))
+        
+        ## TODO CHAPUZA!!
+        total_aux = std_grades['weight_subsections'][-1]['total']
+        
         # get grade group
-        total_grade = std_grades['weight_subsections'][-1]['score']
+        total_grade = std_grades['weight_subsections'][-1]['score']/std_grades['weight_subsections'][-1]['total']
         if total_grade >= proficiency_limit:
             grade_type = 'PROF'
         elif total_grade >= pass_limit:
@@ -592,6 +550,12 @@ def update_DB_student_grades(course_key):
             fail_std_grades = add_students_grades(fail_std_grades, std_grades)
             fail_count += 1
     
+    ## TODO CHAPUZAA!!! 
+    all_std_grades['weight_subsections'][-1]['total'] = total_aux
+    prof_std_grades['weight_subsections'][-1]['total'] = total_aux
+    pass_std_grades['weight_subsections'][-1]['total'] = total_aux
+    fail_std_grades['weight_subsections'][-1]['total'] = total_aux
+    
     # Process mean grade
     all_std_grades = mean_student_grades(all_std_grades, all_count)
     prof_std_grades = mean_student_grades(prof_std_grades, prof_count)
@@ -599,7 +563,7 @@ def update_DB_student_grades(course_key):
     fail_std_grades = mean_student_grades(fail_std_grades, fail_count)
     
     # Get all grade_type
-    percent = all_std_grades['weight_subsections'][-1]['score']
+    percent = all_std_grades['weight_subsections'][-1]['score']/all_std_grades['weight_subsections'][-1]['total']
     if percent >= proficiency_limit:
         all_grade_type = 'PROF'
     elif percent >= pass_limit:
@@ -647,6 +611,9 @@ def update_DB_student_grades(course_key):
         
             
 def add_students_grades(original, new):
+    """
+    Add grades from 2 different students
+    """
     for i in range(len(original['graded_sections'])):
         if new['graded_sections'][i]['score'] is not None:
             if original['graded_sections'][i]['score'] is None:
@@ -668,6 +635,9 @@ def add_students_grades(original, new):
 
 
 def mean_student_grades(std_grade, number):
+    """
+    Calculate mean grade for a structure with grades of different students
+    """
     if number > 1:
         for section in std_grade['graded_sections']:
             if section['score'] is not None:
@@ -680,7 +650,7 @@ def mean_student_grades(std_grade, number):
     return std_grade
 
 
-def get_DB_student_grades(course_key, student=None):
+def get_DB_student_grades(course_key, student_id=None):
     """
     Return students grades from database
     
@@ -690,19 +660,20 @@ def get_DB_student_grades(course_key, student=None):
     
     # Students grades
     students_grades = {}
-    if student is None:
+    if student_id is None:
         sql_grades = StudentGrades.objects.filter(course_id=course_key)
     else:
-        sql_grades = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)
+        sql_grades = StudentGrades.objects.filter(course_id=course_key, student_id=student_id)
         
     for std_grade in sql_grades:
         students_grades[std_grade.student_id] = ast.literal_eval(std_grade.grades)
         
     return students_grades 
 
+
 ###################################################################     
-    
 ################### TIME SPENT VISUALIZATION ######################
+###################################################################
 
 def create_time_chapters(course_key):
     """
@@ -783,7 +754,7 @@ def manage_browser_event(time_data, time_chapters, event):
                 # Sequence changed -> Close activity with new seq
                 time_data, time_chapters = activity_close(time_chapters,
                                                           time_data,
-                                                          current_time,
+                                                          event.dtcreated,
                                                           chapt_key, seq_key)
                 
     return  (time_data, time_chapters)
@@ -946,11 +917,11 @@ def update_DB_course_spent_time(course_key):
         if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
             grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
             if grade_group == 'PROF':
-                time_chapters_prof = add_time_chapter_time(time_chapters_prof, time_chapters_student)
+                 time_chapters_prof = add_time_chapter_time(time_chapters_prof, time_chapters_student)
             elif grade_group == 'OK':
-                time_chapters_ok = add_time_chapter_time(time_chapters_ok, time_chapters_student)
+                 time_chapters_ok = add_time_chapter_time(time_chapters_ok, time_chapters_student)
             elif grade_group == 'FAIL':
-                time_chapters_fail = add_time_chapter_time(time_chapters_fail, time_chapters_student)
+                 time_chapters_fail = add_time_chapter_time(time_chapters_fail, time_chapters_student)
     # Add group all time chapters to database
     if (CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.ALL_STUDENTS).count() == 0):
         # Create entry
@@ -993,32 +964,34 @@ def update_DB_course_spent_time(course_key):
                                                                                                  last_calc=datetime.datetime.now())
     
 
-def get_DB_course_spent_time(course_key, student=None):
+def get_DB_course_spent_time(course_key, student_id=None):
     """
     Return course spent time from database
     
     course_key: course id key
-    student: if None, function will return all students
+    student_id: if None, function will return all students
     """
     
     # Course struct
-    course_struct = get_DB_course_struct(course_key)
+    course_struct = get_DB_course_struct(course_key, include_unreleased=False)
     
     # Students time
     students_time = {}
-    if student is None:
+    if student_id is None:
         sql_time = CourseTime.objects.filter(course_id=course_key)
     else:
-        sql_time = CourseTime.objects.filter(course_id=course_key, student_id=student.id)
+        sql_time = CourseTime.objects.filter(course_id=course_key, student_id=student_id)
         
     for std_time in sql_time:
         students_time[std_time.student_id] = ast.literal_eval(std_time.time_spent)
         
     return course_struct, students_time       
               
+              
+######################################################################
+####################### SECTION ACCESSES #############################
 ######################################################################
 
-####################### SECTION ACCESSES #############################
 def create_access_chapters(course_key):
     """
     Creates an array of chapters with times for each one
@@ -1034,7 +1007,8 @@ def create_access_chapters(course_key):
         sequentials = CourseStruct.objects.filter(course_id=course_key, section_type='sequential', father=chapter)
         for seq in sequentials:
             chapter_elem['sequentials'][seq.id] = {'accesses': 0,
-                                                   'verticals': {}}
+                                                   'verticals': {},
+                                                   'last_vert': 1}
             verticals = CourseStruct.objects.filter(course_id=course_key, section_type='vertical', father=seq)
             for vert in verticals:
                 chapter_elem['sequentials'][seq.id]['verticals'][vert.id] = {'accesses': 0}
@@ -1043,7 +1017,9 @@ def create_access_chapters(course_key):
     return access_chapters
 
 def get_student_section_accesses(course_key, student, access_chapters=None):
-    
+    """
+    Fill course structure with accesses to each section for given course and student
+    """
     if access_chapters is None:
         access_chapters = create_access_chapters(course_key)
         
@@ -1054,10 +1030,21 @@ def get_student_section_accesses(course_key, student, access_chapters=None):
     cur_seq = None
     for event in events:
         if event.event_source == 'server':
-            course, cur_chapt, cur_seq = get_locations_from_url(event.event_type)
+            course, chapt_key, seq_key = get_locations_from_url(event.event_type)
+            # Get chapter and seq id
+            if chapt_key is not None and CourseStruct.objects.filter(module_state_key=chapt_key).count() > 0:
+                cur_chapt = CourseStruct.objects.filter(module_state_key=chapt_key)[0].id
+                if seq_key is not None and CourseStruct.objects.filter(module_state_key=seq_key, father_id=cur_chapt).count() > 0:
+                    cur_seq = CourseStruct.objects.filter(module_state_key=seq_key, father_id=cur_chapt)[0].id
+                else:
+                    cur_seq = None
+            else:
+                cur_chapt = None
+                cur_seq = None
+                
             if course is not None and cur_chapt is not None:
                 if cur_seq is not None:
-                    cur_vert = 1
+                    cur_vert = access_chapters[cur_chapt]['sequentials'][cur_seq]['last_vert']
                     # Add sequential access
                     access_chapters = add_course_access(access_chapters, cur_chapt, cur_seq, None)
                     # Add 1st vertical access
@@ -1067,14 +1054,16 @@ def get_student_section_accesses(course_key, student, access_chapters=None):
                     access_chapters = add_course_access(access_chapters, cur_chapt, None, None)
                     cur_vert = 0
         else:
-            event_data = ast.literal_eval(event.event)
-            if ((event.event_type == 'seq_prev' or 
-                 event.event_type == 'seq_next' or 
-                 event.event_type == 'seq_goto') and
-                 event_data['old'] != event_data['new']):
-                cur_vert = event_data['new']
-                # Add vertical access
-                access_chapters = add_course_access(access_chapters, cur_chapt, cur_seq, cur_vert)
+            if cur_chapt is not None and cur_seq is not None:
+                event_data = ast.literal_eval(event.event)
+                if ((event.event_type == 'seq_prev' or 
+                     event.event_type == 'seq_next' or 
+                     event.event_type == 'seq_goto') and
+                    event_data['old'] != event_data['new']):
+                    cur_vert = event_data['new']
+                    access_chapters[cur_chapt]['sequentials'][cur_seq]['last_vert'] = cur_vert
+                    # Add vertical access
+                    access_chapters = add_course_access(access_chapters, cur_chapt, cur_seq, cur_vert)
             
     return access_chapters
 
@@ -1103,23 +1092,24 @@ def add_student_accesses(original, new):
     return original
 
 
-def add_course_access(access_chapters, chapt_key, seq_key=None, vert_pos=None):
-    if CourseStruct.objects.filter(module_state_key=chapt_key).count() > 0:
-        chapt_id = CourseStruct.objects.filter(module_state_key=chapt_key)[0].id
-        if seq_key is None:
+def add_course_access(access_chapters, chapt_id, seq_id=None, vert_pos=None):
+    """
+    Add access to course section
+    """
+    if seq_id is None:
+        # Chapter access
+        access_chapters[chapt_id]['accesses'] += 1
+    else:
+        if vert_pos is None:
+            # Sequential access
+            access_chapters[chapt_id]['sequentials'][seq_id]['accesses'] += 1
             # Chapter access
             access_chapters[chapt_id]['accesses'] += 1
         else:
-            if CourseStruct.objects.filter(module_state_key=seq_key, father_id=chapt_id).count() > 0:
-                seq_id = CourseStruct.objects.filter(module_state_key=seq_key, father_id=chapt_id)[0].id
-                if vert_pos is None:
-                    # Sequential access
-                    access_chapters[chapt_id]['sequentials'][seq_id]['accesses'] += 1
-                else:
-                    # Vertical access
-                    if CourseStruct.objects.filter(father_id=seq_id, index=vert_pos).count() > 0:
-                        vert_id = CourseStruct.objects.filter(father_id=seq_id, index=vert_pos)[0].id
-                        access_chapters[chapt_id]['sequentials'][seq_id]['verticals'][vert_id]['accesses'] += 1
+            # Vertical access
+            if CourseStruct.objects.filter(father_id=seq_id, index=vert_pos).count() > 0:
+                vert_id = CourseStruct.objects.filter(father_id=seq_id, index=vert_pos)[0].id
+                access_chapters[chapt_id]['sequentials'][seq_id]['verticals'][vert_id]['accesses'] += 1
                         
     return access_chapters
 
@@ -1160,11 +1150,11 @@ def update_DB_course_section_accesses(course_key):
         if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
             grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
             if grade_group == 'PROF':
-                course_accesses_prof = add_student_accesses(course_accesses_prof, course_accesses_student)
+                 course_accesses_prof = add_student_accesses(course_accesses_prof, course_accesses_student)
             elif grade_group == 'OK':
-                course_accesses_ok = add_student_accesses(course_accesses_ok, course_accesses_student)
+                 course_accesses_ok = add_student_accesses(course_accesses_ok, course_accesses_student)
             elif grade_group == 'FAIL':
-                course_accesses_fail = add_student_accesses(course_accesses_fail, course_accesses_student)
+                 course_accesses_fail = add_student_accesses(course_accesses_fail, course_accesses_student)
     # Add group all time chapters to database
     if (CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.ALL_STUDENTS).count() == 0):
         # Create entry
@@ -1207,23 +1197,23 @@ def update_DB_course_section_accesses(course_key):
                                                                                                          last_calc=datetime.datetime.now())
 
 
-def get_DB_course_section_accesses(course_key, student=None):
+def get_DB_course_section_accesses(course_key, student_id=None):
     """
     Return course section accesses from database
     
     course_key: course id key
-    student: if None, function will return all students
+    student_id: if None, function will return all students
     """
     
     # Course struct
-    course_struct = get_DB_course_struct(course_key, include_verticals=True)
+    course_struct = get_DB_course_struct(course_key, include_verticals=True, include_unreleased=False)
     
     # Students time
     students_accesses = {}
-    if student is None:
+    if student_id is None:
         sql_accesses = CourseAccesses.objects.filter(course_id=course_key)
     else:
-        sql_accesses = CourseAccesses.objects.filter(course_id=course_key, student_id=student.id)
+        sql_accesses = CourseAccesses.objects.filter(course_id=course_key, student_id=student_id)
         
     for std_accesses in sql_accesses:
         students_accesses[std_accesses.student_id] = ast.literal_eval(std_accesses.accesses)

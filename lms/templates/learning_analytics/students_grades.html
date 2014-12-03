@@ -8,10 +8,11 @@
 <script type="text/javascript" src="${static.url('js/learning_analytics/students_grades.js')}"></script>
 </%block>
 <script>
-	var STD_GRADES_DUMP='${std_grades_dump}';
+	var STD_GRADES_DUMP=JSON.parse('${std_grades_dump}'.replace(/&quot;/ig,'"'));
 	var PASS_LIMIT='${pass_limit}';
 	var PROF_LIMIT='${prof_limit}';
 	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+	var COURSE_ID='${course_id}';
 </script>
 <section>
 	<div class="sidebar">

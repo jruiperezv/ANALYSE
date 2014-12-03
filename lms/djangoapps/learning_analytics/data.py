@@ -6,7 +6,7 @@ from submissions import api as sub_api
 from student.models import anonymous_id_for_user
 import xmodule.graders as xmgraders
 from courseware.models import StudentModule
-from student.models import CourseEnrollment
+from student.models import CourseEnrollment, CourseAccessRole
 from django.contrib.auth.models import User
 from contextlib import contextmanager
 from django.db import transaction
@@ -18,13 +18,15 @@ from eventtracking import tracker
 from opaque_keys.edx.locations import SlashSeparatedCourseKey, Location
 from opaque_keys.edx.locator import CourseLocator, BlockUsageLocator
 from instructor.utils import get_module_for_student
+from django.utils import timezone
+import datetime
 
 def get_courses_list():
 	"""
 	Return a list with all course modules
 	"""
 	return modulestore().get_courses()
-
+	
 def get_course_key(course_id):
     """
     Return course opaque key from olf course ID
@@ -42,6 +44,7 @@ def get_course_module(course_key):
     course = modulestore().get_course(course_key)
     return course
 
+
 def get_course_struct(course):
     """
     Return a dictionary with the course structure of all chapters, sequentials,
@@ -57,17 +60,21 @@ def get_course_struct(course):
     # Chapters
     for chapter in course.get_children():
         if chapter.category == 'chapter':
-            chapter_struct = {'id': chapter.location,
-                              'name': chapter.display_name_with_default,
-                              'sequentials': [] }
-            chapter_graded = False
+	    released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
+			      chapter.start)
+	    chapter_struct = {'id': chapter.location,
+					 'name': chapter.display_name_with_default,
+					 'sequentials': [],
+					 'released': released }
+	    chapter_graded = False
             # Sequentials
             for sequential in chapter.get_children():
                 if sequential.category == 'sequential':
                     seq_struct = {'id': sequential.location,
                                   'name': sequential.display_name_with_default,
                                   'graded': sequential.graded,
-                                  'verticals': [] }
+                                  'verticals': [],
+                                  'released':released }
                     if seq_struct['graded']:
                         chapter_graded = True
                     # Verticals
@@ -75,7 +82,8 @@ def get_course_struct(course):
                         if vertical.category == 'vertical':
                             vert_struct = {'id': vertical.location,
                                            'name': vertical.display_name_with_default,
-                                           'graded': vertical.graded }
+                                           'graded': vertical.graded,
+                                           'released': released }
                             seq_struct['verticals'].append(vert_struct)
                     chapter_struct['sequentials'].append(seq_struct)
             chapter_struct['graded'] = chapter_graded
@@ -124,9 +132,13 @@ def dump_full_grading_context(course):
                     if i < len(gcontext[category]):
                         section_descriptor = gcontext[category][i]['section_descriptor']
                         problem_descriptors = gcontext[category][i]['xmoduledescriptors']
+                        # See if section is released
+                        released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
+									section_descriptor.start)
+                        
                         subsections.append({'category':category,
                                               'label':label,
-                                              'released':True,
+                                              'released':released,
                                               'name': section_descriptor.display_name,
                                               'problems': problem_descriptors,
                                               'max_grade': section_max_grade(course.id, problem_descriptors)})
@@ -157,6 +169,9 @@ def dump_full_grading_context(course):
         if gcontext.has_key(singlegrader.category):
             section_descriptor = gcontext[singlegrader.category][0]['section_descriptor']
             problem_descriptors = gcontext[singlegrader.category][0]['xmoduledescriptors']
+            # See if section is released
+            released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
+						section_descriptor.start)
             subsections.append({'category':singlegrader.category,
                                 'label':singlegrader.short_label,
                                 'released':True,
@@ -175,66 +190,23 @@ def dump_full_grading_context(course):
     dump_full_graded = {'weight_subsections':weight_subs, 'graded_sections':subsections}
     return dump_full_graded
 
-
-#===============================================================================
-# @transaction.commit_manually
-# def problem_grade_modulecreator(course_id, problem_descriptors):
-#     with manual_transaction():
-#         return _problem_grade_modulecreator(course_id, problem_descriptors)
-#     
-#     
-# def _problem_grade_modulecreator(course_key, problem_descriptors):
-#     students_id = (CourseEnrollment.objects
-#         .filter(course_id=course_key))
-#     if students_id.count() > 0:
-#         student = User.objects.get(id=students_id[0].user_id)
-#         # Create dummy request
-#         request = RequestFactory().get('/')
-#         request.user = student
-#         request.session = {}
-#         def create_module(descriptor):
-#             '''creates an XModule instance given a descriptor'''
-#             # TODO: We need the request to pass into here. If we could forego that, our arguments
-#             # would be simpler
-#             with manual_transaction():
-#                 field_data_cache = FieldDataCache([descriptor], course_key, student)
-#             return get_module_for_descriptor(student, request, descriptor, field_data_cache, course_key)
-#         
-#         problem = create_module(problem_descriptors)
-#         # If problem has weight but always_recalculate_grades = True dont return weight
-#         if problem.weight is not None and not problem.always_recalculate_grades:
-#             return problem.weight
-#         else:
-#             return problem.get_score()['total']            
-#     else:
-#         return None
-# 
-# 
-# @contextmanager
-# def manual_transaction():
-#     """A context manager for managing manual transactions"""
-#     try:
-#         yield
-#     except Exception:
-#         transaction.rollback()
-#         # log.exception('Due to an error, this transaction has been rolled back')
-#         raise
-#     else:
-#         transaction.commit()
-#===============================================================================
         
 def section_max_grade(course_key, problem_descriptors):
     """
     Return max grade a student can get in a series of problem descriptors
     """
     max_grade = 0
-    # TODO    get instructor user to do this operation, instead of
-    #         random user
+   
     students_id = CourseEnrollment.objects.filter(course_id=course_key)
     if students_id.count() == 0:
         return max_grade
-    instructor_id = students_id[0]
-    instructor = User.objects.get(id=instructor_id.user_id)
+       
+    instructors = CourseAccessRole.objects.filter(role='instructor')
+    if instructors.count() > 0:
+    	instructor = User.objects.get(id=instructors[0].user.id)
+    else:
+    	## TODO SEND WARNING BECAUSE COURSE HAVE NO INSTRUCTOR
+		instructor = students_id[0].user 
     
     for problem in problem_descriptors:
         score = get_problem_score(course_key, instructor, problem)
@@ -242,48 +214,6 @@ def section_max_grade(course_key, problem_descriptors):
             max_grade += score[1]
                 
     return max_grade      
-#===============================================================================
-# def section_max_grade_old(course_key, problem_descriptors):
-#     """
-#     Return max grade a student can get in a series of problem descriptors
-#     """
-#     max_grade = 0
-#     for problem in problem_descriptors:
-#         # If problem has weight but has always_recalculate_grades = True dont get
-#         # weight because these problems need to be calculated by get_score() 
-#         if problem.weight is not None and not problem.always_recalculate_grades:
-#             max_grade += problem.weight
-#         else:
-#             # Get student module
-#             try:
-#                 student_module = StudentModule.objects.get(
-#                                                            course_id=course_key,
-#                                                            module_state_key=problem.location,
-#                                                            max_grade__isnull=False)
-#             except StudentModule.DoesNotExist:
-#                 student_module = None
-# 
-#             # Add max grade or instantiate a module with problem_module_creator if 
-#             # student_module didn't exists    
-#             if student_module is not None and student_module.max_grade is not None:
-#                 max_grade += student_module.max_grade
-#             else:
-#                 # TODO    get instructor user to do this operation, instead of
-#                 #         random user
-#                 students_id = CourseEnrollment.objects.filter(course_id=course_key)
-#                 if students_id.count() == 0:
-#                     instructor_id = None
-#                 else:
-#                     instructor_id = students_id[0]
-#                 
-#                 if instructor_id is not None:
-#                     instructor = User.objects.get(id=instructor_id.user_id)
-#                     score = get_problem_score(course_key, instructor, problem)
-#                     if score is not None and score[1] is not None:
-#                         max_grade += score[1]
-#                 
-#     return max_grade            
-#===============================================================================
 
 
 def is_problem_done(course_key, user, problem_descriptor):

@@ -2,6 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_course_accesses = (function(){
+	var CHART_ID = 3;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;
@@ -35,8 +36,13 @@ var LA_course_accesses = (function(){
 	var drawChart = function() {
 
 		if(data == null){
+
 			// Default data
-			ca_json = JSON.parse(ACCESS_DUMP.replace(/&quot;/ig,'"'))[getSelectedUser()];
+			ca_json = ACCESS_DUMP[getSelectedUser()];
+			if (ca_json == null){
+				updateChart();
+				return;
+			}
 			var access_array = [['Chapter','Accesses', { role: 'style' }],];
 			for(var i = 0; i < ca_json.length; i++){
 				access_array.push([ca_json[i]['name'],
@@ -155,6 +161,51 @@ var LA_course_accesses = (function(){
 		}
 	};
 	
+	var updateChart = function(event) {
+		var sel_user = getSelectedUser();
+		
+		$.ajax({
+			// the URL for the request
+			url: "/courses/learning_analytics/chart_update",
+			
+			// the data to send (will be converted to a query string)
+			data: {
+				user_id   : sel_user,
+				course_id : COURSE_ID,
+				chart : CHART_ID
+			},
+			
+			// whether to convert data to a query string or not
+			// for non convertible data should be set to false to avoid errors
+			processData: true,
+			
+			// whether this is a POST or GET request
+			type: "GET",
+			
+			// the type of data we expect back
+			dataType : "json",
+			
+			// code to run if the request succeeds;
+			// the response is passed to the function
+			success: function( json ) {
+				ACCESS_DUMP = json;
+				change_data();
+			},
+		
+			// code to run if the request fails; the raw request and
+			// status codes are passed to the function
+			error: function( xhr, status, errorThrown ) {
+				// TODO dejar selectores como estaban
+				console.log( "Error: " + errorThrown );
+				console.log( "Status: " + status );
+				console.dir( xhr );
+			},
+		
+			// code to run regardless of success or failure
+			complete: function( xhr, status ) {
+			}      
+		});
+	};
 	
 	var getSelectedUser = function(){
 		var selectOptions = document.getElementById('course_accesses_options');
@@ -204,17 +255,17 @@ var LA_course_accesses = (function(){
 				case "all":
 					selectStudent.style.display="none";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "student":
 					selectStudent.style.display="";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "group":
 					selectStudent.style.display="none";
 					selectGroup.style.display="";
-					change_data();
+					updateChart();
 					break;
 			}
 			if(!SU_ACCESS){
@@ -225,11 +276,11 @@ var LA_course_accesses = (function(){
 		};
 		
 		selectStudent.onchange = function(){
-			change_data(selectStudent.options[selectStudent.selectedIndex].value);
+			updateChart();
 		};
 		
 		selectGroup.onchange = function(){
-			change_data(selectGroup.options[selectGroup.selectedIndex].value);
+			updateChart();
 		};
 	};
 	

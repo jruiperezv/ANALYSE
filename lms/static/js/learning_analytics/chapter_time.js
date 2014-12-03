@@ -2,6 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_chapter_time = (function(){
+	var CHART_ID = 2;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;
@@ -18,6 +19,7 @@ var LA_chapter_time = (function(){
 					  "#743411"];
 	var UNSELECT_COLOR = "#B8B8B8";
 	var DEFAULT_TITLE = 'Chapters spent time';
+	var EMPTY_TEXT = 'No data'
 
 	var data = null;
 	var options = null;
@@ -33,12 +35,20 @@ var LA_chapter_time = (function(){
 		if(data == null){
 
 			// Default data
-			time_json = JSON.parse(TIME_DUMP.replace(/&quot;/ig,'"'))[getSelectedUser()];
+			time_json = TIME_DUMP[getSelectedUser()];
+			if (time_json == null){
+				updateChart();
+				return;
+			}
 			var time_array = [['Chapter','Time spent'],];
+			var empty = true;
 			for(var i = 0; i < time_json.length; i++){
 				time_array.push([time_json[i]['name'],
 					time_json[i]['total_time']]);
 				def_names.push(time_json[i]['name']);
+				if(time_json[i]['total_time'] > 0){
+					empty = false;
+				}
 			}
 			def_data = google.visualization.arrayToDataTable(time_array);
 			data = def_data;
@@ -55,6 +65,11 @@ var LA_chapter_time = (function(){
 			
 			// Select callbacks
 			setSelectCallback();
+			
+			if (empty){
+				document.getElementById('chart_chapter_time').innerHTML = EMPTY_TEXT;
+				return;
+			}
 		}
 		
 		var chart = new google.visualization.PieChart(document.getElementById('chart_chapter_time'));
@@ -136,6 +151,52 @@ var LA_chapter_time = (function(){
 		drawChart();
 	};
 	
+	var updateChart = function(event) {
+		var sel_user = getSelectedUser();
+		
+		$.ajax({
+			// the URL for the request
+			url: "/courses/learning_analytics/chart_update",
+			
+			// the data to send (will be converted to a query string)
+			data: {
+				user_id   : sel_user,
+				course_id : COURSE_ID,
+				chart : CHART_ID
+			},
+			
+			// whether to convert data to a query string or not
+			// for non convertible data should be set to false to avoid errors
+			processData: true,
+			
+			// whether this is a POST or GET request
+			type: "GET",
+			
+			// the type of data we expect back
+			dataType : "json",
+			
+			// code to run if the request succeeds;
+			// the response is passed to the function
+			success: function( json ) {
+				TIME_DUMP = json;
+				change_data();
+			},
+		
+			// code to run if the request fails; the raw request and
+			// status codes are passed to the function
+			error: function( xhr, status, errorThrown ) {
+				// TODO dejar selectores como estaban
+				console.log( "Error: " + errorThrown );
+				console.log( "Status: " + status );
+				console.dir( xhr );
+			},
+		
+			// code to run regardless of success or failure
+			complete: function( xhr, status ) {
+			}      
+		});
+	};
+	
 	var getSelectedUser = function(){
 		var selectOptions = document.getElementById('chapter_time_options');
 		var selectStudent = document.getElementById('chapter_time_student');
@@ -184,17 +245,17 @@ var LA_chapter_time = (function(){
 				case "all":
 					selectStudent.style.display="none";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "student":
 					selectStudent.style.display="";
 					selectGroup.style.display="none";
-					change_data();
+					updateChart();
 					break;
 				case "group":
 					selectStudent.style.display="none";
 					selectGroup.style.display="";
-					change_data();
+					updateChart();
 					break;
 			}
 			if(!SU_ACCESS){
@@ -205,11 +266,11 @@ var LA_chapter_time = (function(){
 		};
 		
 		selectStudent.onchange = function(){
-			change_data(selectStudent.options[selectStudent.selectedIndex].value);
+			updateChart();
 		};
 		
 		selectGroup.onchange = function(){
-			change_data(selectGroup.options[selectGroup.selectedIndex].value);
+			updateChart();
 		};
 	};
 	

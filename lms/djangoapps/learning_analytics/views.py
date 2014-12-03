@@ -1,10 +1,17 @@
 from edxmako.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
 from django_future.csrf import ensure_csrf_cookie
+from django.contrib.auth.models import User
+from django.http import HttpResponse
+import logging
 
 from json import dumps
 
-from analytics import get_DB_sort_course_homework, get_DB_course_spent_time, get_DB_student_grades, get_DB_course_section_accesses
+from analytics import (get_DB_sort_course_homework, 
+                       get_DB_course_spent_time, 
+                       get_DB_student_grades, 
+                       get_DB_course_section_accesses)
+from analytics_jose import get_DB_time_schedule
 from data import get_course_key, get_course_module, get_course_students, get_course_grade_cutoff
 
 from courseware.access import has_access
@@ -12,7 +19,19 @@ from courseware.masquerade import setup_masquerade
 from courseware.models import StudentModule
 from courseware.courses import get_course_with_access, get_studio_url
 from courseware.views import fetch_reverify_banner_info
-import logging
+
+
+VISUALIZATIONS_ID = {'LA_course_sort_students': 0,
+                     'LA_student_grades': 1,
+                     'LA_chapter_time': 2,
+                     'LA_course_accesses': 3,
+                     'LA_time_schedule': 4,}
+
+# Constants for student_id
+ALL_STUDENTS = -1
+PROF_GROUP = -2
+PASS_GROUP = -3
+FAIL_GROUP = -4
 
 # Create your views here.
 
@@ -40,13 +59,13 @@ def index(request, course_id):
         # Sort homework
         std_sort = get_DB_sort_course_homework(course_key)
         # Chapter time
-        cs, st = get_DB_course_spent_time(course_key)
+        cs, st = get_DB_course_spent_time(course_key, student_id=ALL_STUDENTS)
         students_spent_time = chapter_time_to_js(cs, st)
-        students_grades = get_DB_student_grades(course_key)
-        cs, sa = course_accesses = get_DB_course_section_accesses(course_key)
+        students_grades = get_DB_student_grades(course_key, student_id=ALL_STUDENTS)
+        cs, sa = course_accesses = get_DB_course_section_accesses(course_key, student_id=ALL_STUDENTS)
         students_course_accesses = course_accesses_to_js(cs, sa)
-        
-        logging.error(dumps(students_course_accesses))
+        students_time_schedule = get_DB_time_schedule(course_key, student_id=ALL_STUDENTS)
+            
         
         context = {'course': course,
                    'request': request,
@@ -58,21 +77,25 @@ def index(request, course_id):
                    'reverifications': reverifications,
                    'course_id': course_id,
                    'students': students_to_js(get_course_students(course_key)),
+                   'visualizations_id': VISUALIZATIONS_ID,
                    'std_grades_dump': dumps(students_grades),
                    'sort_std_dump': dumps(std_sort),
                    'time_dump': dumps(students_spent_time),
                    'accesses_dump': dumps(students_course_accesses),
+                   'std_time_schedule_dumb': dumps(students_time_schedule),
                    'pass_limit': pass_limit,
                    'prof_limit': proficiency_limit,}
     else:
         # Student access
         
         # Chapter time
-        cs, st = get_DB_course_spent_time(get_course_key(course_id), user)
+        cs, st = get_DB_course_spent_time(course_key, user.id)
         student_spent_time = chapter_time_to_js(cs, st)
-        students_grades = get_DB_student_grades(course_key, user)
-        cs, sa = course_accesses = get_DB_course_section_accesses(course_key, user)
+        students_grades = get_DB_student_grades(course_key, user.id)
+        cs, sa = course_accesses = get_DB_course_section_accesses(course_key, user.id)
         student_course_accesses = course_accesses_to_js(cs, sa)
+        student_time_schedule = get_DB_time_schedule(course_key, user.id)
+        
         
         context = {'course': course,
                    'request': request,
@@ -88,11 +111,40 @@ def index(request, course_id):
                    'sort_std_dump': None,
                    'time_dump': dumps(student_spent_time),
                    'accesses_dump': dumps(student_course_accesses),
+                   'std_time_schedule_dumb': dumps(student_time_schedule),
                    'pass_limit': pass_limit,
                    'prof_limit': proficiency_limit,}
         
     return render_to_response('learning_analytics/learning_analytics.html', context)    
+
+
+@login_required
+@ensure_csrf_cookie
+def chart_update(request):
+    results = {'success' : False}
+    chart_info_json = dumps(results)
+    if request.method == u'GET':
+        GET = request.GET
+        course_key = get_course_key(GET[u'course_id'])
+        user_id = GET[u'user_id']
+        chart = int(GET[u'chart'])
+        if chart == VISUALIZATIONS_ID['LA_chapter_time']:
+            cs, st = get_DB_course_spent_time(course_key, student_id=user_id)
+            student_spent_time = chapter_time_to_js(cs, st)
+            chart_info_json = dumps(student_spent_time)
+        elif chart == VISUALIZATIONS_ID['LA_course_accesses']:
+            cs, sa = get_DB_course_section_accesses(course_key, student_id=user_id)
+            student_course_accesses = course_accesses_to_js(cs, sa)
+            chart_info_json = dumps(student_course_accesses)
+        elif chart == VISUALIZATIONS_ID['LA_student_grades']:
+            students_grades = get_DB_student_grades(course_key, student_id=user_id)
+            chart_info_json = dumps(students_grades)
+        elif chart == VISUALIZATIONS_ID['LA_time_schedule']:
+            student_time_schedule = get_DB_time_schedule(course_key, student_id=user_id)
+            chart_info_json = dumps(student_time_schedule)
     
+    return HttpResponse(chart_info_json, mimetype='application/json')
+
 def chapter_time_to_js(course_struct, students_time):
     """
     Formats time chapters data to send it to a javascript script

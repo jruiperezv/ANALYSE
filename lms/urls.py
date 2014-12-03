@@ -383,7 +383,9 @@ if settings.COURSEWARE_ENABLED:
     if settings.FEATURES.get('ENABLE_LEARNING_ANALYTICS'):
         urlpatterns += (
             url(r'^courses/(?P<course_id>[^/]+/[^/]+/[^/]+)/learning_analytics$',
-            'learning_analytics.views.index', name="learning_analytics")),
+            'learning_analytics.views.index', name="learning_analytics"),
+            url(r'^courses/learning_analytics/chart_update$',
+            'learning_analytics.views.chart_update', name="chart_ajax"),)
 
     # allow course staff to change to student view of courseware
     if settings.FEATURES.get('ENABLE_MASQUERADE'):

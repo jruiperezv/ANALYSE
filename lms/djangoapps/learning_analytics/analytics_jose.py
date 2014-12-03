@@ -3,9 +3,9 @@ from data import get_course_students
 from track.backends.django import TrackingLog
 from models import TimeSchedule
 import datetime
+import ast
 
 def time_schedule(course_id):
-    print "time_schedule"
     students = get_course_students(course_id)
     
     morningTimeStudentCourse = 0
@@ -13,11 +13,6 @@ def time_schedule(course_id):
     nightTimeStudentCourse = 0
     
     for student in students:
-        
-        print ""
-        print ""
-        print ""
-        print student.username
         
         firstEventOfSeries = None
         previousEvent = None     
@@ -32,8 +27,6 @@ def time_schedule(course_id):
         
         for currentEvent in studentEvents:
             
-            print "Current schedule: %s" % currentSchedule
-            
             if(currentSchedule == ""):
                 currentSchedule = current_schedule(currentEvent.dtcreated.hour)
                 if(previousEvent == None):                    
@@ -41,35 +34,24 @@ def time_schedule(course_id):
                 else:
                     firstEventOfSeries = previousEvent
             else:
-                print "Previous %s    Current %s" % (previousEvent.dtcreated, currentEvent.dtcreated)
                 if((minutes_between(previousEvent.dtcreated,currentEvent.dtcreated) >= 30) or currentSchedule != current_schedule(currentEvent.dtcreated.hour)):                    
                     if(currentSchedule == "morning"):
                         morningTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
-                        print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))
-                        print "Morning: %d" % morningTimeStudent
                     elif(currentSchedule == "afternoon"):
                         afternoonTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
-                        print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))
-                        print "Afternoon: %d" % afternoonTimeStudent
                     elif(currentSchedule == "night"):
-                        print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))                        
-                        print "Night: %d" % nightTimeStudent
+                        nightTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+                        
                     currentSchedule = ""
                             
             previousEvent = currentEvent
             
         if(currentSchedule == "morning"):
             morningTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
-            print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))
-            print "Morning: %d" % morningTimeStudent
         elif(currentSchedule == "afternoon"):
             afternoonTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
-            print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))
-            print "Afternoon: %d" % afternoonTimeStudent
         elif(currentSchedule == "night"):
             nightTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
-            print "First Event %s    Previous %s    Time: %d" % (firstEventOfSeries.dtcreated, previousEvent.dtcreated, minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated))
-            print "Night: %d" % nightTimeStudent
         
         morningTimeStudentCourse += morningTimeStudent
         afternoonTimeStudentCourse += afternoonTimeStudent
@@ -98,8 +80,6 @@ def time_schedule(course_id):
         TimeSchedule.objects.filter(course_id=course_id, student_id=TimeSchedule.ALL_STUDENTS).update(time_schedule=timeScheduleCourse,
                                                                                       last_calc=datetime.datetime.now())
     
-        
-
 def minutes_between(d1, d2):
     
     elapsed_time = d2 - d1
@@ -140,5 +120,24 @@ def get_all_events_sql(course_key, student):
                         filter_id.append(event.id)
                                 
     return events.filter(id__in=filter_id)
+
+def get_DB_time_schedule(course_key, student_id=None):
+    """
+    Return course section accesses from database
+    
+    course_key: course id key
+    student_id: if None, function will return all students
+    """
+    
+    student_time_schedule = {}
+    if student_id is None:
+        sql_time_schedule = TimeSchedule.objects.filter(course_id=course_key)
+    else:
+        sql_time_schedule = TimeSchedule.objects.filter(course_id=course_key, student_id=student_id)
+        
+    for std_time_schedule in sql_time_schedule:
+        student_time_schedule[std_time_schedule.student_id] = ast.literal_eval(std_time_schedule.time_schedule)
+    
+    return student_time_schedule
 
 
