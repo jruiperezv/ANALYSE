@@ -375,10 +375,10 @@ def get_course_access_events_sql(course_key, student):
             if len(split_url) != 0: 
                 if split_url[0] == 'courses':
                     if (is_same_course(event.event_type, course_key) and 
-                        get_locations_from_url(event.event_type)[1] is not None and 
-                        get_locations_from_url(event.event_type)[1] != 'update'):
+                        not is_xblock_event(event) and
+                        get_locations_from_url(event.event_type)[1] is not None):
                         filter_id.append(event.id)
-                        	    
+                                
     events = events.filter(id__in=filter_id)
     return events
 
@@ -446,7 +446,7 @@ def get_course_from_url(url):
     return None
 
 
-def get_locations_from_url(url):
+def get_locations_from_url(url, course_blocks=None):
     """
     Return sequential, chapter and course keys from
     given url if there is any
@@ -469,7 +469,14 @@ def get_locations_from_url(url):
         if len(route) < 5 or route[3] != 'courseware':
             # No sequential or chapter
             if len(route) > 3 and route[3] == 'xblock':
-                return (course_key, 'update', 'update')
+                xblock_id = filter(None, route[4].split(';_'))[-1]
+                if course_blocks is None:
+                    course_blocks = get_course_blocks(get_course_module(course_key))
+                    
+                if course_blocks.has_key(xblock_id):
+                    return (course_key, course_blocks[xblock_id]['chapter'], course_blocks[xblock_id]['sequential'])
+                else:
+                    return (course_key, None, None)
             else:
                 return (course_key, None, None)
         elif len(route) == 5:
@@ -514,3 +521,35 @@ def compare_locations(loc1, loc2, course_key=None):
         
 
     return lockey1.to_deprecated_string() == lockey2.to_deprecated_string()
+   
+   
+def get_course_blocks(course):
+    blocks = {}
+    
+    for chapter in course.get_children():
+        for seq in chapter.get_children():
+            for vert in seq.get_children():
+                for block in vert.get_children():
+                    blocks[block.location.block_id] = {'chapter':chapter.location,
+                                                       'sequential':seq.location,
+                                                       'block':block.location}
+    return blocks
+
+
+def is_xblock_event(event):
+    if event.event_source != 'server':
+        return False
+
+    # Get route
+    split_url = filter(None, event.event_type.split('/'))
+    course_index = 0
+    for sect in split_url:
+        course_index += 1
+        if sect == 'courses':
+            break
+    route = split_url[course_index:]
+    
+    if len(route) > 3 and route[3] == 'xblock':
+        return True
+    else:
+        return False

@@ -107,7 +107,7 @@ def get_DB_course_struct(course_key, include_verticals=False, include_unreleased
     include_verticals: if true, the result will include verticals
     incluse_unreleased: if true, the result will include unreleased sections
     """
-     # Course struct
+    # Course struct
     course_struct = []
     if include_unreleased:
         sql_struct = CourseStruct.objects.filter(course_id=course_key)
@@ -695,7 +695,7 @@ def create_time_chapters(course_key):
     return time_chapters
 
 
-def get_student_spent_time(course_key, student, time_chapters=None):
+def get_student_spent_time(course_key, student, time_chapters=None, course_blocks=None):
     """
     Add student spent time in course in each chapter to a given
     dictionary with times for each section.
@@ -703,12 +703,16 @@ def get_student_spent_time(course_key, student, time_chapters=None):
     course_key: Course opaque key
     student_id: Student ID
     time_chapters: Array with times for each section to fill. If argument
-                    not given, create a new array
+                   not given, create a new array
+    course_blocks: Dictionary with all course xblocks ids. If argument not
+                   given, create a new dictionary
     """
     
-    # Create time chapters if not given
-    if time_chapters == None:
+    # Create time chapters & course_blocks if not given
+    if time_chapters is None:
         time_chapters = create_time_chapters(course_key)
+    if course_blocks is None:
+        course_blocks = get_course_blocks(get_course_module(course_key))
     
     # Get events
     time_data = {'current_chapter': None, 'current_seq': None,
@@ -718,11 +722,14 @@ def get_student_spent_time(course_key, student, time_chapters=None):
 
     for event in events:
         if event.event_source == 'server':
-            time_data, time_chapters = manage_server_event(time_data, time_chapters, event)
+            time_data, time_chapters = manage_server_event(time_data, time_chapters, event, course_blocks)
         elif event.event_source == 'browser':
             time_data, time_chapters = manage_browser_event(time_data, time_chapters, event)   
             
-    # TODO CUANDO EL USUARIO ESTA USANDO EDX MIENTRAS SE CALCULA
+    # Close in case user is still browsing
+    time_data, time_chapters = activity_close(time_chapters,
+                                              time_data,
+                                              datetime.datetime.utcnow())
     
     return time_chapters
 
@@ -760,15 +767,11 @@ def manage_browser_event(time_data, time_chapters, event):
     return  (time_data, time_chapters)
 
 
-def manage_server_event(time_data, time_chapters, event):
+def manage_server_event(time_data, time_chapters, event, course_blocks=None):
     # Get event location
-    course_key, chapt_key, seq_key = get_locations_from_url(event.event_type)
-    if chapt_key == 'update' or seq_key == 'update':
-        # xblock -> Update activity
-        time_data, time_chapters = activity_update(time_chapters,
-                                                   time_data,
-                                                   event.dtcreated)
-    elif ((course_key == None) or
+    course_key, chapt_key, seq_key = get_locations_from_url(event.event_type, course_blocks)
+   
+    if ((course_key == None) or
         (chapt_key == None and 
         seq_key == None)):
         # logout / dashboard / load courseware,info, xblock etc -> Close activity
@@ -801,15 +804,24 @@ def manage_server_event(time_data, time_chapters, event):
     
 
 def activity_close(time_chapters, time_data, current_time, new_chapter=None, new_seq=None):
+    # If activity already closed
+    if (time_data['last_time'] is None or
+        time_data['initial_time'] is None or
+        time_data['current_chapter'] is None):
+        return (time_data, time_chapters)
+    
     # Add activity time
     time = time_data['last_time'] - time_data['initial_time']
     elapsed_time = current_time - time_data['last_time']
+    
     if (elapsed_time.days != 0 or 
         elapsed_time.seconds > INACTIVITY_TIME):
         elapsed_time = timedelta(seconds=INACTIVITY_TIME)
+        
     time_chapters = add_course_time(time_data['current_chapter'],
                                     time_data['current_seq'],
                                     time + elapsed_time, time_chapters)
+    
     if new_seq == None and new_chapter == None:
         # Stop activity
         time_data['current_chapter'] = None
@@ -826,6 +838,12 @@ def activity_close(time_chapters, time_data, current_time, new_chapter=None, new
 
 
 def activity_update(time_chapters, time_data, current_time):
+    # If activity is closed
+    if (time_data['last_time'] is None or
+        time_data['initial_time'] is None or
+        time_data['current_chapter'] is None):
+        return (time_data, time_chapters)
+    
     # Update activity
     elapsed_time = current_time - time_data['last_time']
     if (elapsed_time.days != 0 or 
@@ -895,12 +913,15 @@ def update_DB_course_spent_time(course_key):
     
     students = get_course_students(course_key)
     
+    course_blocks = get_course_blocks(get_course_module(course_key))
+    
     # Add students time chapters to database
     for student in students:
         time_chapters_student = copy.deepcopy(time_chapters)
         time_chapters_student = get_student_spent_time(course_key,
                                                        student,
-                                                       time_chapters_student)
+                                                       time_chapters_student,
+                                                       course_blocks)
         # Update database
         if (CourseTime.objects.filter(course_id=course_key, student_id=student.id).count() == 0):
             # Create entry
@@ -985,7 +1006,7 @@ def get_DB_course_spent_time(course_key, student_id=None):
     for std_time in sql_time:
         students_time[std_time.student_id] = ast.literal_eval(std_time.time_spent)
         
-    return course_struct, students_time       
+    return course_struct, students_time           
               
               
 ######################################################################
@@ -1219,3 +1240,6 @@ def get_DB_course_section_accesses(course_key, student_id=None):
         students_accesses[std_accesses.student_id] = ast.literal_eval(std_accesses.accesses)
     
     return course_struct, students_accesses
+
+
+
