@@ -1,0 +1,10 @@
+<%! from django.utils.translation import ugettext as _ %>
+<%page args="select_id, video_names, video_ids"/>
+
+<form class="inputtype option-input ">
+  <select id="${select_id}">
+    % for video_name, video_id in zip(video_names, video_ids):
+    <option${_(" value=\"{vid_id}\">{vid}").format(vid=video_name, vid_id=video_id)}</option>
+    % endfor
+  </select>
+</form>

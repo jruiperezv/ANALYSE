@@ -1,0 +1,21 @@
+<%! from django.utils.translation import ugettext as _ %>
+<%page args="select_id, usernames_in"/>
+
+% if staff_access:
+<form class="inputtype option-input ">
+  <select id="${select_id}">
+    <option value="&#35;average" selected>Student average</option>
+    <optgroup label="Students">
+      % for student in usernames_in:
+      <option${_(" value=\"{stu}\">{stu}").format(stu=student)}</option>
+      % endfor
+    </optgroup>
+  </select>
+</form>
+% endif
+
+<%doc>
+&#35; is the character scaping expression for character #
+${staff_access}
+${usernames_in}
+</%doc>

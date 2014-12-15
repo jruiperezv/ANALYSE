@@ -1,0 +1,116 @@
+## Mako template for the xinsider Django application showing some visualizations
+
+<%! from django.utils.translation import ugettext as _ %>
+<%! import ast %>
+
+<%inherit file="../main.html" />
+
+<%namespace name='static' file='/static_content.html'/>
+<%namespace name="video_progress" file="video_progress.js"/>
+<%namespace name="total_video_time" file="all_video_time.js"/>
+<%namespace name="total_problem_time" file="per_problem_time.js"/>
+<%namespace name="video_intervals_stu" file="video_intervals_stu.js"/>
+<%namespace name="video_daily" file="video_daily.js"/>
+<%namespace name="video_events_dispersion" file="video_events_dispersion.js"/>
+
+<%block name="headextra">
+  <%static:css group='style-course-vendor'/>
+  <%static:css group='style-course'/>
+  <style>
+  h2 {vertical-align:top;}
+  </style>  
+  <!--Load the AJAX API (The Google JSAPI API)-->
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <!-- Load the Visualization API and the charts packages. -->
+  <script>
+    google.load('visualization', '1.0', {'packages':['corechart', 'timeline']});
+  </script>
+  <!-- <script type="text/javascript" src="${static.url('js/jquery.js')}"></script> -->
+  
+  <script type="text/javascript"> ${video_progress.body(video_prog_json)} </script>
+  <script type="text/javascript"> ${total_video_time.body(video_distrib_json)} </script>
+  <script type="text/javascript"> ${total_problem_time.body(problem_distrib_json)} </script>
+  <script type="text/javascript"> ${video_intervals_stu.body(video_intervals_array)} </script>
+  <script type="text/javascript"> ${video_daily.body(vid_and_prob_daily_time)} </script>
+  <script type="text/javascript"> ${video_events_dispersion.body(scatter_array)} </script>
+  
+  <%include file="/xinsider/update_chart.html" />
+  
+</%block>
+
+<%block name="pagetitle">${_("{course_number} Xinsider").format(course_number=course.display_number_with_default)}</%block>
+
+<%include file="/dashboard/_dashboard_prompt_midcourse_reverify.html" />
+
+<%include file="/courseware/course_navigation.html" args="active_page='xinsider'" />
+
+##<%block name="bodyclass">${course.css_class or ''}</%block>
+
+<div class="container">
+  <div class="profile-wrapper">
+  
+    <div class="course-info">
+      % if staff_access and studio_url is not None:
+        <div class="wrap-instructor-info">
+          <a class="instructor-info-action studio-view" href="${studio_url}">${_("View Grading in studio")}</a>
+        </div>
+      % endif
+      
+      <header>
+        <h1>${_("Learning Analytics for Student '{username}' ({email})").format(username=user.username, email=user.email)}</h1>
+      </header>
+      
+      <!--Div that will hold the charts-->
+      <div class="chapters">
+      
+	<!-- Video time watched chart -->
+	<section>	  
+	  <h2 style="vertical-align:top">Video time watched</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
+	  <div id="video_prog_chart" style='float:left; width:700; height:500'> </div>
+	</section>
+	
+	<!-- Video time distribution chart -->
+	<section>	  
+	  <h2>Video time distribution</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
+	  <div id="all_video_time" style='float:left; width:600; height:350'> </div>
+	</section>
+
+	<!-- Problem time distribution chart -->
+	<section>	  
+	  <h2>Problem time distribution</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select3', usernames_in=usernames_in" />    
+	  <div id="per_problem_time" style='float:left; width:600; height:350'> </div>
+	</section>	
+	
+	<!-- Repetitions per video intervals chart -->
+	<section>	  
+	  <h2>Repetitions per video intervals</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select4', usernames_in=usernames_in" />
+	  <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_module_ids" />
+	  <div id="video_intervals_chart" style='float:left; width:800; height:300'> </div>
+	</section>		
+
+	<!-- Daily time on video and problems chart -->
+	<section>	  
+	  <h2>Daily time on video and problems</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />
+	  <div id="vid_prob_daily_chart" style='float:left; width:500; height:400'> </div>
+	</section>		
+
+	<!-- Video events dispersion within video length chart -->
+	<section>	  
+	  <h2>Video events distribution within video length</h2>
+	  <%include file="/xinsider/select_student.html" args="select_id='student_select6', usernames_in=usernames_in" />
+	  <%include file="/xinsider/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_module_ids" />
+	  <div id="dispersion_chart" style='float:left; width:500; height:400'> </div>
+	</section>	
+	
+      <div>
+
+      <%include file="/xinsider/select_adjustments.html" />      
+
+    </div>
+  </div>
+</div>

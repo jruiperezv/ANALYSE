@@ -1241,5 +1241,16 @@ def get_DB_course_section_accesses(course_key, student_id=None):
     
     return course_struct, students_accesses
 
-
+def to_iterable_module_id(block_usage_locator):
+  
+    iterable_module_id = []
+    iterable_module_id.append(block_usage_locator.org)
+    iterable_module_id.append(block_usage_locator.course)
+    #iterable_module_id.append(block_usage_locator.run)
+    iterable_module_id.append(block_usage_locator.branch)
+    iterable_module_id.append(block_usage_locator.version_guid)
+    iterable_module_id.append(block_usage_locator.block_type)
+    iterable_module_id.append(block_usage_locator.block_id)    
+    
+    return iterable_module_id
 

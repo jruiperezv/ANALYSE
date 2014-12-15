@@ -1,0 +1,31 @@
+% if staff_access:
+<!-- Adjust some select menus for better semantics and clarity -->
+<script type="text/javascript">
+
+  // Adjust select menu for video intervals chart
+  var repetitions_select = document.getElementById("student_select4");
+  repetitions_select.remove(0);
+
+  var classTotalTime = document.createElement("option");
+  classTotalTime.setAttribute("value", "#class_total_times");
+  classTotalTime.setAttribute("selected", true);
+  classTotalTime.innerHTML = "Class: total times";
+  repetitions_select.insertBefore(classTotalTime, repetitions_select.childNodes[0]);
+
+  var oneStuOneTime = document.createElement("option");
+  oneStuOneTime.setAttribute("value", "#one_stu_one_time");
+  oneStuOneTime.innerHTML = "Class: 1 student 1 time";
+  repetitions_select.insertBefore(oneStuOneTime, repetitions_select.childNodes[1]);
+
+  // Adjust select menu for video events chart
+  var events_select = document.getElementById("student_select6");
+  events_select.remove(0);
+
+  var allStudents = document.createElement("option");
+  allStudents.setAttribute("value", "#average");
+  allStudents.setAttribute("selected", true);
+  allStudents.innerHTML = "All students";
+  events_select.insertBefore(allStudents, events_select.childNodes[0]);  
+
+</script>
+% endif
