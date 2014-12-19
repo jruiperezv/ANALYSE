@@ -938,11 +938,11 @@ def update_DB_course_spent_time(course_key):
         if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
             grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
             if grade_group == 'PROF':
-                 time_chapters_prof = add_time_chapter_time(time_chapters_prof, time_chapters_student)
+                time_chapters_prof = add_time_chapter_time(time_chapters_prof, time_chapters_student)
             elif grade_group == 'OK':
-                 time_chapters_ok = add_time_chapter_time(time_chapters_ok, time_chapters_student)
+                time_chapters_ok = add_time_chapter_time(time_chapters_ok, time_chapters_student)
             elif grade_group == 'FAIL':
-                 time_chapters_fail = add_time_chapter_time(time_chapters_fail, time_chapters_student)
+                time_chapters_fail = add_time_chapter_time(time_chapters_fail, time_chapters_student)
     # Add group all time chapters to database
     if (CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.ALL_STUDENTS).count() == 0):
         # Create entry
@@ -1171,11 +1171,11 @@ def update_DB_course_section_accesses(course_key):
         if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
             grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
             if grade_group == 'PROF':
-                 course_accesses_prof = add_student_accesses(course_accesses_prof, course_accesses_student)
+                course_accesses_prof = add_student_accesses(course_accesses_prof, course_accesses_student)
             elif grade_group == 'OK':
-                 course_accesses_ok = add_student_accesses(course_accesses_ok, course_accesses_student)
+                course_accesses_ok = add_student_accesses(course_accesses_ok, course_accesses_student)
             elif grade_group == 'FAIL':
-                 course_accesses_fail = add_student_accesses(course_accesses_fail, course_accesses_student)
+                course_accesses_fail = add_student_accesses(course_accesses_fail, course_accesses_student)
     # Add group all time chapters to database
     if (CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.ALL_STUDENTS).count() == 0):
         # Create entry

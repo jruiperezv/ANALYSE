@@ -8,6 +8,7 @@ from analytics import (update_DB_course_struct,
 from analytics_jose import time_schedule
 from data import get_courses_list
 from opaque_keys.edx.locations import SlashSeparatedCourseKey
+from celeryHector import update_visualization_data
 
 
 @task()
@@ -23,3 +24,4 @@ def update_DB_analytics():
 		update_DB_sort_course_homework(course.id)
 		update_DB_course_section_accesses(course.id)
 		time_schedule(course.id)
+		update_visualization_data(course.id)

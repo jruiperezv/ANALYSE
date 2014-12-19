@@ -127,3 +127,164 @@ class TimeSchedule(models.Model):
     
     class Meta:
         unique_together = (('student_id', 'course_id'),)
+        
+        
+# Model for data to be used on 'Video time watched', 'Video time distribution'
+# and 'Problem time distribution' charts. Related to time spent on modules, 
+# specifically at this time video and problem ones.
+class ConsumptionModule(models.Model):
+
+    # This model for student is invalid as it does not allow for average and aggregate values.
+    #student = models.ForeignKey(User, db_index=True)
+    
+    student = models.CharField(max_length=32, db_index=True)
+    #course_key
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    #OLD course_key = models.CharField(max_length=255, db_index=True)
+
+    MODULE_TYPES = (('problem', 'problem'),
+                    ('video', 'video'),
+                    )
+
+    module_type = models.CharField(max_length=32, choices=MODULE_TYPES, default='video', db_index=True)
+    module_key = LocationKeyField(max_length=255, db_index=True)
+    # Module's display name
+    display_name = models.CharField(max_length=255, db_index=True)
+    
+    total_time = models.FloatField(db_index=True)
+    
+    # For videos only. Time of non-overlapped video viewed in seconds
+    percent_viewed = models.FloatField(null=True, blank=True, db_index=True)    
+    
+    class Meta:
+        unique_together = (('student', 'module_key'),)    
+
+    def __repr__(self):
+        return 'ConsumptionModule<%r>' % ({
+            'student': self.student,
+            'course_key': self.course_key,
+            'module_type': self.module_type,
+            'module_key': self.module_key,
+            'display_name': self.display_name,
+            'total_time': self.total_time,
+            'percent_viewed': self.percent_viewed,
+        },)        
+        
+    def __unicode__(self):
+        return unicode(repr(self))    
+    
+
+# Model for data to be used on 'Daily time on video and problems' chart.
+# Related to daily time spent on modules, specifically at this time
+# video and problem ones. 
+class DailyConsumption(models.Model):
+
+    student = models.CharField(max_length=32, db_index=True)    
+    #course_key
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    #OLD course_key = models.CharField(max_length=255, db_index=True)
+
+    MODULE_TYPES = (('problem', 'problem'),
+                    ('video', 'video'),
+                    )
+
+    module_type = models.CharField(max_length=32, choices=MODULE_TYPES, default='video', db_index=True)
+    
+    # DateField fields use a Python datetime object to store data.
+    # Databases do not store datetime objects, so the field value
+    # must be converted into an ISO-compliant date string for insertion into the database.
+    # Therefore a string representation of date is used.
+    #date = models.DateField(db_index=True)
+    
+    dates = models.TextField(db_index=False)
+    time_per_date = models.TextField(db_index=False)
+    
+    class Meta:
+        unique_together = (('student', 'course_key', 'module_type'),)
+
+    def __repr__(self):
+        return 'DailyConsumption<%r>' % ({
+            'student': self.student,
+            'course_key': self.course_key,
+            'module_type': self.module_type,
+            'dates': self.dates,
+            'time_per_date': self.time_per_date,
+        },)
+        
+    def __unicode__(self):
+        return unicode(repr(self))
+        
+
+# Model for data to be used on 'Video intervals repetition' chart.
+# Related to how many times a student has watched a particular interval.     
+class VideoIntervals(models.Model):
+  
+    student = models.CharField(max_length=32, db_index=True)    
+    #course_key
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    #OLD course_key = models.CharField(max_length=255, db_index=True)
+    module_key = LocationKeyField(max_length=255, db_index=True)
+    
+    # Module's display name
+    display_name = models.CharField(max_length=255, db_index=True)
+    
+    hist_xaxis = models.TextField(db_index=False)
+    hist_yaxis = models.TextField(db_index=False)
+
+    class Meta:
+        unique_together = (('student', 'module_key'),)
+
+    def __repr__(self):
+        return 'VideoIntervals<%r>' % ({
+            'student': self.student,
+            'course_key': self.course_key,
+            'module_key': self.module_key,
+            'display_name': self.display_name,
+            'hist_xaxis': self.hist_xaxis,
+            'hist_yaxis': self.hist_yaxis,            
+        },)
+    
+    def __unicode__(self):
+        return unicode(repr(self))    
+
+
+# Model for data to be used on 'Video events distribution within video length' chart.
+# Related to the position of user interaction with videos
+class VideoEvents(models.Model):
+
+    student = models.CharField(max_length=32, db_index=True) 
+    # Here the model field using ForeignKey makes sense since for this model '#average' student is not used
+    # However, for similarity to the other models here, CharField has been used.
+    #student = models.ForeignKey(User, db_index=True)
+    #course_key
+    course_key = CourseKeyField(max_length=255, db_index=True)
+    #OLD course_key = models.CharField(max_length=255, db_index=True)
+    module_key = LocationKeyField(max_length=255, db_index=True)
+    
+    # Module's display name
+    display_name = models.CharField(max_length=255, db_index=True)
+    
+    play_events = models.TextField(db_index=False)
+    pause_events = models.TextField(db_index=False)
+    change_speed_events = models.TextField(db_index=False)
+    seek_from_events = models.TextField(db_index=False)
+    seek_to_events = models.TextField(db_index=False)
+
+    class Meta:
+        unique_together = (('student', 'module_key'),)
+
+    def __repr__(self):
+        return 'VideoEvents<%r>' % ({
+            'student': self.student,
+            'course_key': self.course_key,
+            'module_key': self.module_key,
+            'display_name': self.display_name,
+            'play_events': self.play_events,
+            'pause_events': self.pause_events,  
+            'change_speed_events': self.change_speed_events,
+            'seek_from_events': self.seek_from_events, 
+            'seek_to_events': self.seek_to_events,
+        },)
+            
+    def __unicode__(self):
+        return unicode(repr(self))

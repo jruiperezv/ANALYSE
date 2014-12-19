@@ -1,6 +1,7 @@
 <%! from django.utils.translation import ugettext as _ %>
 <%page args="select_id, video_names, video_ids"/>
 
+% if video_names is not None:
 <form class="inputtype option-input ">
   <select id="${select_id}">
     % for video_name, video_id in zip(video_names, video_ids):
@@ -8,3 +9,6 @@
     % endfor
   </select>
 </form>
+% else:
+<p> This course contains no videos. </p>
+% endif

@@ -46,22 +46,16 @@
 			<h2>Student learning analytics</h2>
 			% endif
 			<div class="visualizations">
-				% if instructor_access or staff_access:
-				
+				% if instructor_access or staff_access:				
 				<%include file="course_sort_students.html" />
-				<%include file="students_grades.html" />
-				<%include file="chapter_time.html" />
-				<%include file="course_accesses.html" />
-                <%include file="students_time_schedule.html" />
-                
-				% else:
+                % endif
 				
 				<%include file="students_grades.html" />
 				<%include file="chapter_time.html" />
 				<%include file="course_accesses.html" />
 				<%include file="students_time_schedule.html" />
 				
-				% endif
+				
 			<section>
 			    <div class="sidebar">
 			        <h2>Video time watched</h2>
@@ -126,7 +120,7 @@
                     <h5>Options</h5>
                     <%include file="/xinsider/select_student.html" args="select_id='student_select4', usernames_in=usernames_in" />
                     <h5>Videos</h5>
-                    <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_module_ids" />
+                          <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_ids" />
                 </div>
                 <!--Div that will hold the stacked bar chart-->
                 <div class="graph" id="video_intervals_chart">
@@ -164,7 +158,7 @@
                     <h5>Options</h5>
                     <%include file="/xinsider/select_student.html" args="select_id='student_select6', usernames_in=usernames_in" />
                     <h5>Videos</h5>
-                    <%include file="/xinsider/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_module_ids" />
+                          <%include file="/xinsider/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_ids" />
                 </div>
                 <!--Div that will hold the stacked bar chart-->
                 <div class="graph" id="dispersion_chart">

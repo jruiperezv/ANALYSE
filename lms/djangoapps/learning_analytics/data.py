@@ -22,11 +22,11 @@ from django.utils import timezone
 import datetime
 
 def get_courses_list():
-	"""
-	Return a list with all course modules
-	"""
-	return modulestore().get_courses()
-	
+        """
+        Return a list with all course modules
+        """
+        return modulestore().get_courses()
+        
 def get_course_key(course_id):
     """
     Return course opaque key from olf course ID
@@ -60,13 +60,13 @@ def get_course_struct(course):
     # Chapters
     for chapter in course.get_children():
         if chapter.category == 'chapter':
-	    released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
-			      chapter.start)
-	    chapter_struct = {'id': chapter.location,
-					 'name': chapter.display_name_with_default,
-					 'sequentials': [],
-					 'released': released }
-	    chapter_graded = False
+            released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
+                              chapter.start)
+            chapter_struct = {'id': chapter.location,
+                                         'name': chapter.display_name_with_default,
+                                         'sequentials': [],
+                                         'released': released }
+            chapter_graded = False
             # Sequentials
             for sequential in chapter.get_children():
                 if sequential.category == 'sequential':
@@ -134,7 +134,7 @@ def dump_full_grading_context(course):
                         problem_descriptors = gcontext[category][i]['xmoduledescriptors']
                         # See if section is released
                         released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
-									section_descriptor.start)
+                                                                        section_descriptor.start)
                         
                         subsections.append({'category':category,
                                               'label':label,
@@ -171,7 +171,7 @@ def dump_full_grading_context(course):
             problem_descriptors = gcontext[singlegrader.category][0]['xmoduledescriptors']
             # See if section is released
             released = (timezone.make_aware(datetime.datetime.now(), timezone.get_default_timezone()) > 
-						section_descriptor.start)
+                                                section_descriptor.start)
             subsections.append({'category':singlegrader.category,
                                 'label':singlegrader.short_label,
                                 'released':True,
@@ -203,10 +203,10 @@ def section_max_grade(course_key, problem_descriptors):
        
     instructors = CourseAccessRole.objects.filter(role='instructor')
     if instructors.count() > 0:
-    	instructor = User.objects.get(id=instructors[0].user.id)
+            instructor = User.objects.get(id=instructors[0].user.id)
     else:
-    	## TODO SEND WARNING BECAUSE COURSE HAVE NO INSTRUCTOR
-		instructor = students_id[0].user 
+            ## TODO SEND WARNING BECAUSE COURSE HAVE NO INSTRUCTOR
+                instructor = students_id[0].user 
     
     for problem in problem_descriptors:
         score = get_problem_score(course_key, instructor, problem)
@@ -392,7 +392,7 @@ def is_same_course(course_1, course_2):
     """
     # Get course 1 key
     if (course_1.__class__ == SlashSeparatedCourseKey or
-	    course_1.__class__ == CourseLocator):
+            course_1.__class__ == CourseLocator):
         course_1_key = course_1
     elif course_1.__class__ == str or course_1.__class__ == unicode:
         course_1_key = get_course_from_url(course_1)
@@ -404,7 +404,7 @@ def is_same_course(course_1, course_2):
     
     # Get course 2 key
     if (course_2.__class__ == SlashSeparatedCourseKey.__class__ or
-	    course_2.__class__ == CourseLocator):
+            course_2.__class__ == CourseLocator):
         course_2_key = course_2
     elif course_2.__class__ == str or course_2.__class__ == unicode:
         course_2_key = get_course_from_url(course_2)
