@@ -171,7 +171,7 @@ def index(request, course_id):
                     'problem_distrib_json' : problem_distrib_json,
                     'video_intervals_array' : video_intervals_array,
                     'vid_and_prob_daily_time' : vid_and_prob_daily_time,
-                    'scatter_array' : scatter_array,    }
+                    'scatter_array' : scatter_array}
     else:
         # Student access
         
@@ -209,7 +209,7 @@ def index(request, course_id):
                     'problem_distrib_json' : problem_distrib_json,
                     'video_intervals_array' : video_intervals_array,
                     'vid_and_prob_daily_time' : vid_and_prob_daily_time,
-                    'scatter_array' : scatter_array,    }
+                    'scatter_array' : scatter_array}
         
     return render_to_response('learning_analytics/learning_analytics.html', context)    
 

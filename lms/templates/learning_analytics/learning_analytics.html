@@ -10,6 +10,9 @@
 <%namespace name="video_daily" file="/xinsider/video_daily.js"/>
 <%namespace name="video_events_dispersion" file="/xinsider/video_events_dispersion.js"/>
 
+
+
+
 <%block name="headextra">
 <%static:css group='style-course-vendor'/>
 <%static:css group='style-course'/>
@@ -18,81 +21,101 @@
  <script>
    google.load('visualization', '1.0', {'packages':['corechart', 'timeline']});
  </script>
- <script type="text/javascript"> ${video_progress.body(video_prog_json)} </script>
+  <script type="text/javascript"> ${video_progress.body(video_prog_json)} </script>
   <script type="text/javascript"> ${total_video_time.body(video_distrib_json)} </script>
   <script type="text/javascript"> ${total_problem_time.body(problem_distrib_json)} </script>
   <script type="text/javascript"> ${video_intervals_stu.body(video_intervals_array)} </script>
   <script type="text/javascript"> ${video_daily.body(vid_and_prob_daily_time)} </script>
   <script type="text/javascript"> ${video_events_dispersion.body(scatter_array)} </script>
   
-  <%include file="/xinsider/update_chart.html" />
+<script type="text/javascript"> 
+
+function change_section(clicked_id)
+{
+
+	reset_elements();
+	
+	if(clicked_id == "a_exercise_visualizations")
+		{
+		document.getElementById("a_exercise_visualizations").className = "active-section";
+		document.getElementById("div_exercise_visualizations").style.display = "";
+		}
+	else if(clicked_id == "a_video_visualizations")
+		{
+		on_load();document.getElementById("a_video_visualizations").className = "active-section";
+		document.getElementById("div_video_visualizations").style.display = "";
+		}
+	else if(clicked_id == "a_course_activity_visualizations")
+       {
+       document.getElementById("a_course_activity_visualizations").className = "active-section";
+       document.getElementById("div_course_activity_visualizations").style.display = "";
+       }
+}
+
+function reset_elements()
+{	
+	   document.getElementById("a_exercise_visualizations").className = "";
+	   document.getElementById("a_video_visualizations").className = "";
+	   document.getElementById("a_course_activity_visualizations").className = "";
+	    
+	   document.getElementById("div_exercise_visualizations").style.display = "none";
+	   document.getElementById("div_video_visualizations").style.display = "none";
+	   document.getElementById("div_course_activity_visualizations").style.display = "none";
+	   
+	   // Way around fix so that Google Charts visualizations resize correctly...
+       document.getElementById("div_exercise_visualizations").style.visibility = "visible";
+       document.getElementById("div_video_visualizations").style.visibility = "visible";
+       document.getElementById("div_course_activity_visualizations").style.visibility = "visible";
+	}
+
+</script>
+
+
+<%include file="/xinsider/update_chart.html" />
 </%block>
 
 <%block name="pagetitle">${_("{course_number} Learning Analytics").format(course_number=course.display_number_with_default)}</%block>
+
 
 <%include file="/dashboard/_dashboard_prompt_midcourse_reverify.html" />
 
 <%include file="/courseware/course_navigation.html" args="active_page='learning_analytics'" />
 
+<body>
 <div class="container">
 	<div class="profile-wrapper">
 		<div class="learning-analytics" >
 			<header>
 				<h1>${_("Analytics for course: {course}").format(course=course.display_name)}</h1>
 			</header>
+
 			% if instructor_access or staff_access:
-			<h2>Instructor learning analytics</h2>
-			% else:
-			<h2>Student learning analytics</h2>
-			% endif
+            <h2>Learning Analytics Dashboard for Instructors</h2>
+            % else:
+            <h2>Learning Analytics Dashboard for Students</h2>
+            % endif
+			<div class="instructor-dashboard-wrapper-2">
+                <section class="instructor-dashboard-content-2" id="learning-analytics-dashboard-content">
+				    <ul class="instructor-nav">
+				        <li class="nav-item"><a href="#" id="a_exercise_visualizations" onclick="change_section(this.id);">Exercise visualizations</a></li>
+				        <li class="nav-item"><a href="#" id="a_video_visualizations" onclick="change_section(this.id);">Video visualizations</a></li>
+				        <li class="nav-item"><a href="#" id="a_course_activity_visualizations" onclick="change_section(this.id);">Course activity visualizations</a></li>
+				    </ul>
+				</section>
+			</div>
+
 			<div class="visualizations">
-				% if instructor_access or staff_access:				
-				<%include file="course_sort_students.html" />
-                % endif
+
+
 				
-				<%include file="students_grades.html" />
-				<%include file="chapter_time.html" />
-				<%include file="course_accesses.html" />
-				<%include file="students_time_schedule.html" />
-				
-				
-			<section>
-			    <div class="sidebar">
-			        <h2>Video time watched</h2>
-			        <p>
-			            blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
-			        </p>
-			        <br/>
-                    <h5>Options</h5>
-                    <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
-			    </div>
-			    <!--Div that will hold the stacked bar chart-->
-			    <div class="graph" id="video_prog_chart">
-			    </div>
-			    <div class="legend">
-			    <h3 id="legend_title"></h3>
-			    </div>
-			</section>
-			
-			<section>
-                <div class="sidebar">
-                    <h2>Video time distribution chart </h2>
-                    <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
-                    </p>
-                    <br/>
-                    <h5>Options</h5>
-                    <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
-                </div>
-                <!--Div that will hold the stacked bar chart-->
-                <div class="graph" id="all_video_time">
-                </div>
-                <div class="legend">
-                <h3 id="legend_title"></h3>
-                </div>
-            </section>
-            
-            <section>
+			<div id="div_exercise_visualizations"   style="display: block;visibility: hidden">
+			    % if instructor_access or staff_access:             
+                    <%include file="course_sort_students.html" />
+                % endif                
+                <%include file="students_grades.html" />
+                
+                
+                <section>
                 <div class="sidebar">
                     <h2>Problem time distribution </h2>
                     <p>
@@ -104,6 +127,46 @@
                 </div>
                 <!--Div that will hold the stacked bar chart-->
                 <div class="graph" id="per_problem_time">
+                </div>
+                <div class="legend">
+                <h3 id="legend_title"></h3>
+                </div>
+                </section>
+                
+			</div>
+			
+			<div id="div_video_visualizations"   style="display: block;visibility: hidden">
+			
+			    <section>
+                <div class="sidebar">
+                    <h2>Video time watched</h2>
+                    <p>
+                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                    </p>
+                    <br/>
+                    <h5>Options</h5>
+                    <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
+                </div>
+                <!--Div that will hold the stacked bar chart-->
+                <div class="graph" id="video_prog_chart">
+                </div>
+                <div class="legend">
+                <h3 id="legend_title"></h3>
+                </div>
+                </section>
+                
+                <section>
+                <div class="sidebar">
+                    <h2>Video time distribution chart </h2>
+                    <p>
+                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                    </p>
+                    <br/>
+                    <h5>Options</h5>
+                    <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
+                </div>
+                <!--Div that will hold the stacked bar chart-->
+                <div class="graph" id="all_video_time">
                 </div>
                 <div class="legend">
                 <h3 id="legend_title"></h3>
@@ -129,25 +192,7 @@
                 <h3 id="legend_title"></h3>
                 </div>
             </section>
-            
-            <section>
-                <div class="sidebar">
-                    <h2>Daily time on video and problems </h2>
-                    <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
-                    </p>
-                    <br/>
-                    <h5>Options</h5>
-                    <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
-                </div>
-                <!--Div that will hold the stacked bar chart-->
-                <div class="graph" id="vid_prob_daily_chart">
-                </div>
-                <div class="legend">
-                <h3 id="legend_title"></h3>
-                </div>
-            </section>
-            
+                
             <section>
                 <div class="sidebar">
                     <h2>Video events distribution within video length</h2>
@@ -167,9 +212,40 @@
                 <h3 id="legend_title"></h3>
                 </div>
             </section>
+                
             
+            </div>
+            
+            <div id="div_course_activity_visualizations"   style="display: block;visibility: hidden">
+            
+                <%include file="course_accesses.html" />
+                
+                <%include file="chapter_time.html" />
+                
+	             <section>
+	                <div class="sidebar">
+	                    <h2>Daily time on video and problems </h2>
+	                    <p>
+	                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+	                    </p>
+	                    <br/>
+	                    <h5>Options</h5>
+	                    <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
+	                </div>
+	                <!--Div that will hold the stacked bar chart-->
+	                <div class="graph" id="vid_prob_daily_chart">
+	                </div>
+	                <div class="legend">
+	                <h3 id="legend_title"></h3>
+	                </div>
+	            </section>
+	            
+                <%include file="students_time_schedule.html" />
+            </div>
+
 			</div>
 		</div>
 		<%include file="/xinsider/select_adjustments.html" />
 	</div>
 </div>
+</body>
