@@ -4,7 +4,10 @@ from courseware.models import StudentModule
 from data import *
 from datetime import timedelta
 from django.contrib.auth.models import User
-from models import SortGrades, CourseTime, CourseStruct, StudentGrades, CourseAccesses
+from django.utils import timezone
+from models import (SortGrades, CourseTime, CourseStruct, 
+                    StudentGrades, CourseAccesses, 
+                    CourseProbVidProgress)
 from student.models import CourseEnrollment
 from django.db.models import Q
 
@@ -528,7 +531,7 @@ def update_DB_student_grades(course_key):
             
         exists = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)
         if exists.count() > 0:
-            exists.update(grades=std_grades, grade_group=grade_type, last_calc=datetime.datetime.now())
+            exists.update(grades=std_grades, grade_group=grade_type, last_calc=timezone.now())
         else:
             StudentGrades.objects.create(course_id=course_key,
                                          student_id=student.id,
@@ -575,7 +578,7 @@ def update_DB_student_grades(course_key):
     # All
     exists = StudentGrades.objects.filter(course_id=course_key, student_id=StudentGrades.ALL_STUDENTS)
     if exists.count() > 0:
-        exists.update(grades=all_std_grades, grade_group=all_grade_type, last_calc=datetime.datetime.now())
+        exists.update(grades=all_std_grades, grade_group=all_grade_type, last_calc=timezone.now())
     else:
         StudentGrades.objects.create(course_id=course_key,
                                      student_id=StudentGrades.ALL_STUDENTS,
@@ -584,7 +587,7 @@ def update_DB_student_grades(course_key):
     # Proficiency
     exists = StudentGrades.objects.filter(course_id=course_key, student_id=StudentGrades.PROF_GROUP)
     if exists.count() > 0:
-        exists.update(grades=prof_std_grades, grade_group='PROF', last_calc=datetime.datetime.now())
+        exists.update(grades=prof_std_grades, grade_group='PROF', last_calc=timezone.now())
     else:
         StudentGrades.objects.create(course_id=course_key,
                                      student_id=StudentGrades.PROF_GROUP,
@@ -593,7 +596,7 @@ def update_DB_student_grades(course_key):
     # Pass
     exists = StudentGrades.objects.filter(course_id=course_key, student_id=StudentGrades.PASS_GROUP)
     if exists.count() > 0:
-        exists.update(grades=pass_std_grades, grade_group='OK', last_calc=datetime.datetime.now())
+        exists.update(grades=pass_std_grades, grade_group='OK', last_calc=timezone.now())
     else:
         StudentGrades.objects.create(course_id=course_key,
                                      student_id=StudentGrades.PASS_GROUP,
@@ -602,7 +605,7 @@ def update_DB_student_grades(course_key):
     # Fail
     exists = StudentGrades.objects.filter(course_id=course_key, student_id=StudentGrades.FAIL_GROUP)
     if exists.count() > 0:
-        exists.update(grades=fail_std_grades, grade_group='FAIL', last_calc=datetime.datetime.now())
+        exists.update(grades=fail_std_grades, grade_group='FAIL', last_calc=timezone.now())
     else:
         StudentGrades.objects.create(course_id=course_key,
                                      student_id=StudentGrades.FAIL_GROUP,
@@ -729,7 +732,7 @@ def get_student_spent_time(course_key, student, time_chapters=None, course_block
     # Close in case user is still browsing
     time_data, time_chapters = activity_close(time_chapters,
                                               time_data,
-                                              datetime.datetime.utcnow())
+                                              timezone.now())
     
     return time_chapters
 
@@ -931,7 +934,7 @@ def update_DB_course_spent_time(course_key):
         else:
             # Update entry
             CourseTime.objects.filter(course_id=course_key, student_id=student.id).update(time_spent=time_chapters_student,
-                                                                                          last_calc=datetime.datetime.now())
+                                                                                          last_calc=timezone.now())
         # Add student time to his groups
         time_chapters_all = add_time_chapter_time(time_chapters_all, time_chapters_student)
         
@@ -952,7 +955,7 @@ def update_DB_course_spent_time(course_key):
     else:
         # Update entry
         CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.ALL_STUDENTS).update(time_spent=time_chapters_all,
-                                                                                                   last_calc=datetime.datetime.now())
+                                                                                                   last_calc=timezone.now())
     # Add group prof time chapters to database
     if (CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.PROF_GROUP).count() == 0):
         # Create entry
@@ -962,7 +965,7 @@ def update_DB_course_spent_time(course_key):
     else:
         # Update entry
         CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.PROF_GROUP).update(time_spent=time_chapters_prof,
-                                                                                                 last_calc=datetime.datetime.now())
+                                                                                                 last_calc=timezone.now())
     # Add group ok time chapters to database
     if (CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.PASS_GROUP).count() == 0):
         # Create entry
@@ -972,7 +975,7 @@ def update_DB_course_spent_time(course_key):
     else:
         # Update entry
         CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.PASS_GROUP).update(time_spent=time_chapters_ok,
-                                                                                                 last_calc=datetime.datetime.now())
+                                                                                                 last_calc=timezone.now())
     # Add group fail time chapters to database
     if (CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.FAIL_GROUP).count() == 0):
         # Create entry
@@ -982,7 +985,7 @@ def update_DB_course_spent_time(course_key):
     else:
         # Update entry
         CourseTime.objects.filter(course_id=course_key, student_id=CourseTime.FAIL_GROUP).update(time_spent=time_chapters_fail,
-                                                                                                 last_calc=datetime.datetime.now())
+                                                                                                 last_calc=timezone.now())
     
 
 def get_DB_course_spent_time(course_key, student_id=None):
@@ -1164,7 +1167,7 @@ def update_DB_course_section_accesses(course_key):
         else:
             # Update entry
             CourseAccesses.objects.filter(course_id=course_key, student_id=student.id).update(accesses=course_accesses_student,
-                                                                                              last_calc=datetime.datetime.now())
+                                                                                              last_calc=timezone.now())
         # Add student time to his groups
         course_accesses_all = add_student_accesses(course_accesses_all, course_accesses_student)
         
@@ -1185,7 +1188,7 @@ def update_DB_course_section_accesses(course_key):
     else:
         # Update entry
         CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.ALL_STUDENTS).update(accesses=course_accesses_all,
-                                                                                                           last_calc=datetime.datetime.now())
+                                                                                                           last_calc=timezone.now())
     # Add group prof time chapters to database
     if (CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.PROF_GROUP).count() == 0):
         # Create entry
@@ -1195,7 +1198,7 @@ def update_DB_course_section_accesses(course_key):
     else:
         # Update entry
         CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.PROF_GROUP).update(accesses=course_accesses_prof,
-                                                                                                         last_calc=datetime.datetime.now())
+                                                                                                         last_calc=timezone.now())
     # Add group ok time chapters to database
     if (CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.PASS_GROUP).count() == 0):
         # Create entry
@@ -1205,7 +1208,7 @@ def update_DB_course_section_accesses(course_key):
     else:
         # Update entry
         CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.PASS_GROUP).update(accesses=course_accesses_ok,
-                                                                                                         last_calc=datetime.datetime.now())
+                                                                                                         last_calc=timezone.now())
     # Add group fail time chapters to database
     if (CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.FAIL_GROUP).count() == 0):
         # Create entry
@@ -1215,7 +1218,7 @@ def update_DB_course_section_accesses(course_key):
     else:
         # Update entry
         CourseAccesses.objects.filter(course_id=course_key, student_id=CourseAccesses.FAIL_GROUP).update(accesses=course_accesses_fail,
-                                                                                                         last_calc=datetime.datetime.now())
+                                                                                                         last_calc=timezone.now())
 
 
 def get_DB_course_section_accesses(course_key, student_id=None):
@@ -1240,6 +1243,698 @@ def get_DB_course_section_accesses(course_key, student_id=None):
         students_accesses[std_accesses.student_id] = ast.literal_eval(std_accesses.accesses)
     
     return course_struct, students_accesses
+    
+    
+##############################################################################
+######################### PROBLEMS + VIDEO PROGRESS ##########################
+##############################################################################
+
+def create_course_progress(course_key):
+    
+    course = get_course_module(course_key)
+    
+    # Get timeline
+    timeline = perdelta(course.start, course.end if course.end is not None else timezone.now(), timedelta(days=1))
+    
+    # Get course struct
+    course_struct = []
+    
+    full_gc = dump_full_grading_context(course)
+    
+    index = 0
+    for subsection in full_gc['weight_subsections']:
+        course_struct.append({'weight': subsection['weight'],
+                              'total': 0,
+                              'score': 0,
+                              'problems': [] })
+        for grad_section in full_gc['graded_sections']:
+            if grad_section['released'] and grad_section['category'] == subsection['category']:
+                course_struct[index]['total'] += grad_section['max_grade']
+                # Add problems ids
+                for prob in grad_section['problems']:
+                    course_struct[index]['problems'].append(prob.location)
+        index += 1
+        
+    # Delete non released or graded sections
+    for section in course_struct:
+        if section['total'] == 0:
+            course_struct.remove(section)
+    
+    return course_struct, timeline
+    
+    
+def perdelta(start, end, delta):
+    """
+    Returns a datatime array starting at start and ending at
+    end, with a separation of delta
+    """
+    timeline = []
+    curr = start
+    while curr <= end:
+        timeline.append(curr)
+        curr += delta
+    return timeline
+
+
+def get_student_problem_progress(course_key, student, course_struct=None, timeline=None):
+    
+    if course_struct is None or timeline is None:
+        course_struct, timeline = create_course_progress(course_key)
+    
+    problem_progress = []
+    
+    events = get_problem_history_sql(course_key, student)
+    last_time = datetime.datetime.fromtimestamp(0)
+    for act_time in timeline:
+        filter_events = events.filter(dtcreated__gt = last_time,
+                                      dtcreated__lte = act_time)
+        last_time = act_time
+        # Add grades
+        for event in filter_events:
+            prob_data = ast.literal_eval(event.event)
+            prob_block = course_key.make_usage_key_from_deprecated_string(prob_data['problem_id'])
+            for section in course_struct:
+                for prob in section['problems']:
+                    if prob == prob_block:
+                        if event.event_type == 'problem_check':
+                            section['score'] += prob_data['grade']
+                        elif event.event_type == 'problem_rescore':
+                            section['score'] -= prob_data['orig_score']
+                            section['score'] += prob_data['new_score']
+                        break
+        # Add data
+        total = 0
+        total_weight = 0
+        for section in course_struct:
+            if section['total'] != 0:
+                total += (section['score']/section['total'])*section['weight']
+            total_weight += section['weight']
+        total = total/total_weight
+        total = total*100
+        total = int(round(total,0))
+        
+        problem_progress.append({'score':total, 'time': act_time})
+    
+    return problem_progress
+
+
+def mean_problem_progress_sum(problem_progress, num):
+    if num <= 1:
+        return problem_progress
+    
+    for p in problem_progress:
+        p['score'] = p['score']/num
+        
+    return problem_progress 
+
+def add_problem_progress(base, new):
+    
+    for i in range(len(base)):
+        base[i]['score'] += new[i]['score']
+    return base
+
+
+def optimize_problem_progress(problem_progress):
+    
+    time_len = len(problem_progress)
+    if time_len == 1:
+        return ([problem_progress[0]['score']], problem_progress[0]['time'],
+                problem_progress[0]['time'], 0)
+    if time_len == 0:
+        return ([0], None, None, 0)
+    
+    # Get start date
+    start_index = 0
+    
+    while (start_index < time_len
+           and problem_progress[start_index]['score'] == 0):
+        start_index += 1
+    
+    if start_index == time_len:
+        return ([0], None, None, 0)
+    
+    # Get end date
+    last_score = problem_progress[time_len - 1]['score']
+    end_index = start_index
+    index_found = False
+    
+    for i in range(start_index,time_len):
+        if problem_progress[i]['score'] == last_score:
+            if not index_found: 
+                end_index = i
+                index_found = True
+        else:
+            end_index = i
+            index_found = False
+    
+    # Get dates
+    start_index = start_index - 1 if (start_index >= 1) else start_index
+    end_index = end_index + 1 if (end_index < time_len -1) else end_index
+    
+    end_date = problem_progress[end_index]['time']
+    start_date = problem_progress[start_index]['time']
+    
+    tdelta =  0 if (start_index == end_index) else (problem_progress[1]['time'] - problem_progress[0]['time'])
+    delta = (tdelta.days*60*60*24 + tdelta.seconds) if tdelta is not 0 else 0
+    
+    # Get progress array
+    progress = []
+    for i in range(start_index, end_index + 1):
+        progress.append(problem_progress[i]['score'])
+        
+    return progress, start_date, end_date, delta
+
+
+def update_DB_course_problem_progress(course_key, course_struct=None, timeline=None):
+    
+    if course_struct is None or timeline is None:
+        course_struct, timeline = create_course_progress(course_key)
+        
+    all_problem_progress = []
+    prof_problem_progress = []
+    ok_problem_progress = []
+    fail_problem_progress = []
+    num_all = 0
+    num_prof = 0
+    num_ok = 0
+    num_fail = 0
+    
+    for time in timeline:
+        all_problem_progress.append({'score':0, 'time':time})
+        prof_problem_progress.append({'score':0, 'time':time})
+        ok_problem_progress.append({'score':0, 'time':time})
+        fail_problem_progress.append({'score':0, 'time':time})
+        
+    students = get_course_students(course_key)
+    
+    for student in students:
+        std_problem_progress = get_student_problem_progress(course_key,
+                                                            student,
+                                                            copy.deepcopy(course_struct),
+                                                            timeline)
+        # Add grade to all
+        all_problem_progress = add_problem_progress(all_problem_progress, 
+                                                    std_problem_progress)
+        num_all += 1
+        # Add grade to category
+        if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
+            grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
+            if grade_group == 'PROF':
+                prof_problem_progress = add_problem_progress(prof_problem_progress,
+                                                             std_problem_progress)
+                num_prof += 1
+            elif grade_group == 'OK':
+                ok_problem_progress = add_problem_progress(ok_problem_progress,
+                                                             std_problem_progress)
+                num_ok += 1
+            elif grade_group == 'FAIL':
+                fail_problem_progress = add_problem_progress(fail_problem_progress,
+                                                             std_problem_progress)
+                num_fail += 1
+        
+        progress, start_date, end_date, delta = optimize_problem_progress(std_problem_progress)
+        # Add student progress to database
+        sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=student.id, type='PROB')
+        if (sql_filtered.count() == 0):
+            # Create entry
+            CourseProbVidProgress.objects.create(student_id=student.id,
+                                                 course_id=course_key,
+                                                 progress=progress,
+                                                 type='PROB',
+                                                 start_time=start_date,
+                                                 end_time=end_date,
+                                                 delta=delta)
+        else:
+            # Update entry
+            sql_filtered.update(progress=progress,
+                                start_time=start_date,
+                                end_time=end_date,
+                                delta=delta,
+                                last_calc=timezone.now())
+    
+    # Add ALL students progress to database
+    all_problem_progress = mean_problem_progress_sum(all_problem_progress, num_all)
+    progress, start_date, end_date, delta = optimize_problem_progress(all_problem_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.ALL_STUDENTS, type='PROB')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.ALL_STUDENTS,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='PROB',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+        
+    # Add FAIL students progress to database
+    fail_problem_progress = mean_problem_progress_sum(fail_problem_progress, num_fail)
+    progress, start_date, end_date, delta = optimize_problem_progress(fail_problem_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.FAIL_GROUP, type='PROB')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.FAIL_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='PROB',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+    
+    # Add PROFICIENCY students progress to database
+    prof_problem_progress = mean_problem_progress_sum(prof_problem_progress, num_prof)
+    progress, start_date, end_date, delta = optimize_problem_progress(prof_problem_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.PROF_GROUP, type='PROB')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.PROF_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='PROB',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+    
+    # Add PASS students progress to database
+    ok_problem_progress = mean_problem_progress_sum(ok_problem_progress, num_ok)
+    progress, start_date, end_date, delta = optimize_problem_progress(ok_problem_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.PASS_GROUP, type='PROB')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.PASS_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='PROB',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+
+
+def get_student_video_progress(course, student, timeline=None):
+        
+    if timeline is None:
+        timeline = create_course_progress(course.location.course_key)[1]
+    
+    video_progress = []
+    
+    (video_module_ids, video_durations) = get_info_videos(course)[1:3]
+    
+    first_event, last_event = get_video_events_interval(student, course.location.course_key)
+    
+    last_percent = 0
+    for act_time in timeline:
+        if (first_event is None or
+            (act_time < first_event and
+            (first_event - act_time).days > 0)):
+            video_progress.append({'percent': 0, 
+                                   'time': act_time})
+        elif (act_time > last_event and
+              (act_time - last_event).days > 0):
+            video_progress.append({'percent': last_percent, 
+                                   'time': act_time})
+        else:
+            last_percent = student_total_video_percent(course, student, video_module_ids, video_durations, act_time)
+            video_progress.append({'percent': last_percent, 
+                                   'time': act_time})
+    
+    return video_progress
+
+
+def student_total_video_percent(course, user, video_module_ids = None, video_durations = None, last_date = None):
+    """
+        based in HECTOR's video_consumption 
+        Returns video consumption in the form of video names, percentages
+        per video seen and total time spent per video for a certain user
+    """
+    if video_module_ids is None or video_durations is None:
+        (video_module_ids, video_durations) = get_info_videos(course)[1:2]
+    
+    # Non-overlapped video time
+    stu_video_seen = []
+    # Video length seen based on tracking-log events (best possible measure)
+    for video_module_id in video_module_ids:
+        [aux_start, aux_end] = video_len_watched(user,video_module_id, last_date)
+        interval_sum = 0
+        for start, end in zip(aux_start,aux_end):
+            interval_sum += end - start
+        stu_video_seen.append(interval_sum)
+        
+    if sum(stu_video_seen) <= 0:
+        return 0
+        
+    video_percentages = map(truediv, stu_video_seen, video_durations)
+    video_percentages = [val*100 for val in video_percentages]
+    video_percentages = [int(round(val,0)) for val in video_percentages]
+    # Ensure artificially percentages do not surpass 100%, which
+    # could happen slightly from the 1s adjustment in id_to_length function
+    for i in range(0,len(video_percentages)):
+        if video_percentages[i] > 100:
+            video_percentages[i] = 100
+            
+    total_percent = sum(video_percentages)/len(video_percentages)
+  
+    return total_percent
+
+
+def mean_video_progress_sum(video_progress, num):
+    if num <= 1:
+        return video_progress
+    
+    for p in video_progress:
+        p['percent'] = p['percent']/num
+        
+    return video_progress 
+
+def add_video_progress(base, new):
+    
+    for i in range(len(base)):
+        base[i]['percent'] += new[i]['percent']
+    return base
+
+
+def optimize_video_progress(video_progress):
+    
+    time_len = len(video_progress)
+    if time_len == 1:
+        return ([video_progress[0]['percent']], video_progress[0]['time'],
+                video_progress[0]['time'], 0)
+    if time_len == 0:
+        return ([0], None, None, 0)
+    
+    # Get start date
+    start_index = 0
+    
+    while (start_index < time_len
+           and video_progress[start_index]['percent'] == 0):
+        start_index += 1
+    
+    if start_index == time_len:
+        return ([0], None, None, 0)
+    
+    # Get end date
+    last_percent = video_progress[time_len - 1]['percent']
+    end_index = start_index
+    index_found = False
+    
+    for i in range(start_index,time_len):
+        if video_progress[i]['percent'] == last_percent:
+            if not index_found: 
+                end_index = i
+                index_found = True
+        else:
+            end_index = i
+            index_found = False
+    
+    # Get dates
+    start_index = start_index - 1 if (start_index >= 1) else start_index
+    end_index = end_index + 1 if (end_index < time_len -1) else end_index
+    
+    end_date = video_progress[end_index]['time']
+    start_date = video_progress[start_index]['time']
+    
+    tdelta =  0 if (start_index == end_index) else (video_progress[1]['time'] - video_progress[0]['time'])
+    delta = (tdelta.days*60*60*24 + tdelta.seconds) if tdelta is not 0 else 0
+    
+    # Get progress array
+    progress = []
+    for i in range(start_index, end_index + 1):
+        progress.append(video_progress[i]['percent'])
+        
+    return progress, start_date, end_date, delta
+
+
+def update_DB_course_video_progress(course_key, timeline=None):
+    
+    if timeline is None:
+        timeline = create_course_progress(course_key)[1]
+        
+    all_video_progress = []
+    prof_video_progress = []
+    ok_video_progress = []
+    fail_video_progress = []
+    num_all = 0
+    num_prof = 0
+    num_ok = 0
+    num_fail = 0
+    
+    for time in timeline:
+        all_video_progress.append({'percent':0, 'time':time})
+        prof_video_progress.append({'percent':0, 'time':time})
+        ok_video_progress.append({'percent':0, 'time':time})
+        fail_video_progress.append({'percent':0, 'time':time})
+        
+    students = get_course_students(course_key)
+    course = get_course_module(course_key)
+    
+    for student in students:
+        std_video_progress = get_student_video_progress(course, student, timeline)
+        # Add grade to all
+        all_video_progress = add_video_progress(all_video_progress, 
+                                                std_video_progress)
+        num_all += 1
+        # Add grade to category
+        if StudentGrades.objects.filter(course_id=course_key, student_id=student.id).count() > 0:
+            grade_group = StudentGrades.objects.filter(course_id=course_key, student_id=student.id)[0].grade_group
+            if grade_group == 'PROF':
+                prof_video_progress = add_video_progress(prof_video_progress,
+                                                         std_video_progress)
+                num_prof += 1
+            elif grade_group == 'OK':
+                ok_video_progress = add_video_progress(ok_video_progress,
+                                                       std_video_progress)
+                num_ok += 1
+            elif grade_group == 'FAIL':
+                fail_video_progress = add_video_progress(fail_video_progress,
+                                                         std_video_progress)
+                num_fail += 1
+        
+        progress, start_date, end_date, delta = optimize_video_progress(std_video_progress)
+        # Add student progress to database
+        sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=student.id, type='VID')
+        if (sql_filtered.count() == 0):
+            # Create entry
+            CourseProbVidProgress.objects.create(student_id=student.id,
+                                                 course_id=course_key,
+                                                 progress=progress,
+                                                 type='VID',
+                                                 start_time=start_date,
+                                                 end_time=end_date,
+                                                 delta=delta)
+        else:
+            # Update entry
+            sql_filtered.update(progress=progress,
+                                start_time=start_date,
+                                end_time=end_date,
+                                delta=delta,
+                                last_calc=timezone.now())
+    
+    # Add ALL students progress to database
+    all_video_progress = mean_video_progress_sum(all_video_progress, num_all)
+    progress, start_date, end_date, delta = optimize_video_progress(all_video_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.ALL_STUDENTS, type='VID')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.ALL_STUDENTS,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='VID',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+        
+    # Add FAIL students progress to database
+    fail_video_progress = mean_video_progress_sum(fail_video_progress, num_fail)
+    progress, start_date, end_date, delta = optimize_video_progress(fail_video_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.FAIL_GROUP, type='VID')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.FAIL_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='VID',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+    
+    # Add PROFICIENCY students progress to database
+    prof_video_progress = mean_video_progress_sum(prof_video_progress, num_prof)
+    progress, start_date, end_date, delta = optimize_video_progress(prof_video_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.PROF_GROUP, type='VID')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.PROF_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='VID',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+    
+    # Add PASS students progress to database
+    ok_video_progress = mean_video_progress_sum(ok_video_progress, num_ok)
+    progress, start_date, end_date, delta = optimize_video_progress(ok_video_progress)
+    # Add student progress to database
+    sql_filtered = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=CourseProbVidProgress.PASS_GROUP, type='VID')
+    if (sql_filtered.count() == 0):
+        # Create entry
+        CourseProbVidProgress.objects.create(student_id=CourseProbVidProgress.PASS_GROUP,
+                                             course_id=course_key,
+                                             progress=progress,
+                                             type='VID',
+                                             start_time=start_date,
+                                             end_time=end_date,
+                                             delta=delta)
+    else:
+        # Update entry
+        sql_filtered.update(progress=progress,
+                            start_time=start_date,
+                            end_time=end_date,
+                            delta=delta,
+                            last_calc=timezone.now())
+  
+  
+def get_DB_course_video_problem_progress(course_key, student_id=None):
+    """
+    Return course problem and video progress from database
+    
+    course_key: course id key
+    student_id: if None, function will return all students
+    """
+    
+    # Students progress
+    students_vidprob_progress = {}
+    if student_id is None:
+        sql_progress = CourseProbVidProgress.objects.filter(course_id=course_key)
+    else:
+        sql_progress = CourseProbVidProgress.objects.filter(course_id=course_key, student_id=student_id)
+        
+    for prob_progress in sql_progress.filter(type='PROB'):
+        vid_progress = sql_progress.filter(type='VID', student_id=prob_progress.student_id)[0]
+        # Start time
+        if prob_progress.start_time is None:
+            start_datetime = vid_progress.start_time
+        elif vid_progress.start_time is None:
+            start_datetime = prob_progress.start_time
+        else:
+            start_datetime = min(prob_progress.start_time, vid_progress.start_time)
+        # End time
+        if prob_progress.end_time is None:
+            end_datetime = vid_progress.end_time
+        elif vid_progress.end_time is None:
+            end_datetime = prob_progress.end_time
+        else:
+            end_datetime = max(prob_progress.end_time, vid_progress.end_time)
+        
+        if prob_progress.delta == 0 or vid_progress.delta == 0:
+            delta_l = prob_progress.delta if prob_progress.delta != 0 else vid_progress.delta 
+        else:
+            delta_l = min(prob_progress.delta, vid_progress.delta)
+        delta = timedelta(seconds=delta_l)
+        
+        prob_data = ast.literal_eval(prob_progress.progress)
+        vid_data = ast.literal_eval(vid_progress.progress)
+        
+        index_prob = 0
+        index_vid = 0
+        
+        students_vidprob_progress[prob_progress.student_id] = []
+        
+        if (start_datetime is None or
+            end_datetime is None or 
+            delta == 0):
+            return students_vidprob_progress
+        
+        for time in perdelta(start_datetime, end_datetime, delta):
+            prob_result = 0
+            if (prob_progress.start_time is not None and
+                prob_progress.start_time <= time):
+                if time <= prob_progress.end_time:
+                    # time in problem timeline
+                    prob_result = prob_data[index_prob]
+                    index_prob += 1
+                else:
+                    # time > problem timeline
+                    prob_result = prob_data[-1]
+            else:
+                # time < problem timeline
+                prob_result = 0
+                
+            vid_result = 0
+            if (vid_progress.start_time is not None and
+                vid_progress.start_time <= time):
+                if time <= vid_progress.end_time:
+                    # time in video timeline
+                    vid_result = vid_data[index_vid]
+                    index_vid += 1
+                else:
+                    # time > video timeline
+                    vid_result = vid_data[-1]
+            else:
+                # time < video timeline
+                vid_result = 0
+            
+            # Add data
+            students_vidprob_progress[prob_progress.student_id].append({'problems': prob_result,
+                                                                        'videos': vid_result,
+                                                                        'time': time.strftime("%d/%m/%Y")})
+    
+    return students_vidprob_progress
+
 
 def to_iterable_module_id(block_usage_locator):
   

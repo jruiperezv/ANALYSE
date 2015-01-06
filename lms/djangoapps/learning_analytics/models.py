@@ -59,7 +59,7 @@ class CourseTime(models.Model):
     # Data
     student_id = models.IntegerField()
     course_id = CourseKeyField(max_length=255, db_index=True)
-    time_spent = models.CharField(max_length=1000, default='')
+    time_spent = models.CharField(max_length=10000, default='')
     
     # Date
     last_calc = models.DateTimeField(auto_now=True)
@@ -78,7 +78,7 @@ class CourseAccesses(models.Model):
     # Data
     student_id = models.IntegerField()
     course_id = CourseKeyField(max_length=255, db_index=True)
-    accesses = models.CharField(max_length=2000, default='')
+    accesses = models.CharField(max_length=10000, default='')
     
     # Date
     last_calc = models.DateTimeField(auto_now=True)
@@ -108,6 +108,32 @@ class StudentGrades(models.Model):
     
     class Meta:
         unique_together = (('student_id', 'course_id'),)
+
+
+class CourseProbVidProgress(models.Model):
+    # Constants for student_id
+    ALL_STUDENTS = -1
+    PROF_GROUP = -2
+    PASS_GROUP = -3
+    FAIL_GROUP = -4
+    
+    # Progress type
+    PROGRESS_TYPE = (('PROB', 'problem'),
+                     ('VID', 'video'))
+    
+    # Data
+    student_id = models.IntegerField()
+    course_id = CourseKeyField(max_length=255, db_index=True)
+    progress = models.CharField(max_length=20000, default='')
+    type = models.CharField(max_length=32, choices=PROGRESS_TYPE, default='PROB')
+    start_time = models.DateTimeField(auto_now=False, null=True, default=None)
+    end_time = models.DateTimeField(auto_now=False, null=True, default=None)
+    delta = models.FloatField()
+    # Date
+    last_calc = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = (('student_id', 'course_id', 'type'),)
         
         
 class TimeSchedule(models.Model):

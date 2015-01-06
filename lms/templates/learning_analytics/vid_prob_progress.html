@@ -1,0 +1,62 @@
+<%namespace name='static' file='/static_content.html'/>
+
+<!--Load the AJAX API-->
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+<!--Load test graph -->
+<%block name="js_extra">
+<script type="text/javascript" src="${static.url('js/learning_analytics/vid_prob_progress.js')}"></script>
+</%block>
+<script>
+	var VID_PROB_PROG_DUMP=JSON.parse('${vid_prob_prog_dump}'.replace(/&quot;/ig,'"'));
+	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
+	var COURSE_ID='${course_id}';
+</script>
+<section>
+	<div class="sidebar">
+		<h2>Problem-Video Progress</h2>
+		
+		
+		% if instructor_access or staff_access:
+		<p>
+			Show acumulative progress of problems grades and video saw percentage depending on the day.
+		</p>
+		<br/>
+		<h5>Options</h5>
+		<select id="vid_prob_prog_options">
+			<option value="all" selected>All students</option>
+			<option value="student">Select student</option>
+			<option value="group">Select student group</option>
+		</select>
+		% else:
+		<p>
+			Show acumulative progress of problems grades and video saw percentage depending on the day.
+		</p>
+		<select id="vid_prob_prog_options" style='display:none'>
+			<option value="all">All students</option>
+			<option value="student" selected>Select student</option>
+			<option value="group">Select student group</option>
+		</select>
+		% endif
+		
+		<select id="vid_prob_prog_student" style='display:none'>
+			% for student in students:
+				<option value="${student['id']}">${student['name']}</option>
+			% endfor
+		</select>
+		
+		<select id="vid_prob_prog_group" style='display:none'>
+			<option value="prof">Proficiency students</option>
+			<option value="pass">Pass students</option>
+			<option value="fail">Fail students</option>
+		</select>
+	</div>
+	<!--Div that will hold the stacked bar chart-->
+	<div class="graph" id="chart_vid_prob_prog"></div>
+	
+	<div class="legend">
+		<h3 id="vid_prob_prog_legend_title"></h3>
+		<ul id="vid_prob_prog_legend_list">
+		</ul>
+	</div>
+</section>

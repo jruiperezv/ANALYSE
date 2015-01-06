@@ -19,7 +19,7 @@ var LA_chapter_time = (function(){
 					  "#743411"];
 	var UNSELECT_COLOR = "#B8B8B8";
 	var DEFAULT_TITLE = 'Chapters spent time';
-	var EMPTY_TEXT = 'No data'
+	var EMPTY_TEXT = 'No data';
 
 	var data = null;
 	var options = null;

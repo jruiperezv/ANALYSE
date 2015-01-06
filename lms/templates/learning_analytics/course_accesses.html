@@ -9,7 +9,6 @@
 </%block>
 <script>
 	var ACCESS_DUMP=JSON.parse('${accesses_dump}'.replace(/&quot;/ig,'"'));
-	console.log(ACCESS_DUMP);
 	var SU_ACCESS=('${instructor_access}' === 'True') || ('${staff_access}' === 'True');
 	var COURSE_ID='${course_id}';
 </script>
