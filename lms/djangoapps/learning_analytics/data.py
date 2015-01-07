@@ -706,6 +706,8 @@ def find_video_intervals(student, video_module_id, last_date = None):
     #guarantee the list of events starts with a play_video
     while events[0].event_type != 'play_video':
         events = events[1:]
+        if len(events) < 2:
+            return [0], [0], [], []
     for event in events:
         if event.event_type == 'play_video':
             if play_flag: # two consecutive play_video events. Second is the relevant one (loads saved_video_position).
@@ -758,6 +760,8 @@ def find_video_intervals(student, video_module_id, last_date = None):
             vid_start_time1.append(start_time)
             vid_end_time1.append(end_time)	    
     # sorting intervals
+    if len(interval_start1) <= 0:
+        return [0], [0], [], []
     [interval_start, interval_end, vid_start_time, vid_end_time] = zip(*sorted(zip(interval_start1, interval_end1, vid_start_time1, vid_end_time1)))
     interval_start = list(interval_start)
     interval_end = list(interval_end)

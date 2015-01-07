@@ -42,7 +42,7 @@ function change_section(clicked_id)
 		}
 	else if(clicked_id == "a_video_visualizations")
 		{
-		on_load();document.getElementById("a_video_visualizations").className = "active-section";
+		document.getElementById("a_video_visualizations").className = "active-section";
 		document.getElementById("div_video_visualizations").style.display = "";
 		}
 	else if(clicked_id == "a_course_activity_visualizations")
@@ -242,7 +242,7 @@ function reset_elements()
 	            
                 <%include file="students_time_schedule.html" />
 		
-		<%include file="vid_prob_progress.html" />
+		 <%include file="vid_prob_progress.html" />
             </div>
 
 			</div>
