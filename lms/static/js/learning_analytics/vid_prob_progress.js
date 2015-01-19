@@ -2,7 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_vid_prob_prog = (function(){
-	var CHART_ID = 4;
+	var CHART_ID = 5;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;
@@ -57,7 +57,7 @@ var LA_vid_prob_prog = (function(){
 			
 			// Select callbacks
 			setSelectCallback();
-			
+
 			if (prog_json.length == 0){
 				document.getElementById('chart_vid_prob_prog').innerHTML = EMPTY_TEXT;
 				return;
