@@ -16,11 +16,10 @@
 	<div class="sidebar">
 		<h2>Chapter Time</h2>
 		
-		
 		% if instructor_access or staff_access:
 		<p>
-			Show time ellapsed for all students in each chapter of the course. Click in one section in order to 
-			see the time ellapsed on graded and ungraded content on that chapter.
+			This visualization shows the time elapsed for the selected students' option in each chapter of the course. Click in one section in order to 
+			divide it in graded, ungraded and chapter time.
 		</p>
 		<br/>
 		<h5>Options</h5>
@@ -31,8 +30,8 @@
 		</select>
 		% else:
 		<p>
-			Show time ellapsed in each chapter of the course. Click in one section in order to 
-			see the time ellapsed on graded and ungraded content on that chapter.
+			This visualization shows your time elapsed in each chapter of the course. Click in one section in order to 
+            divide it in graded, ungraded and chapter time.
 		</p>
 		<select id="chapter_time_options" style='display:none'>
 			<option value="all">All students</option>

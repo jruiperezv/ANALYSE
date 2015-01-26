@@ -39,16 +39,31 @@ function change_section(clicked_id)
 		{
 		document.getElementById("a_exercise_visualizations").className = "active-section";
 		document.getElementById("div_exercise_visualizations").style.display = "";
+		// Reload of visualizations for correct resizing
+		LA_student_grades.drawChart();
+		LA_course_sort_students.drawChart();
+		drawChart3(${problem_distrib_json});
 		}
 	else if(clicked_id == "a_video_visualizations")
 		{
 		document.getElementById("a_video_visualizations").className = "active-section";
 		document.getElementById("div_video_visualizations").style.display = "";
+		// Reload of visualizations for correct resizing
+		drawChart1(${video_prog_json});
+		drawChart2(${video_distrib_json});
+		drawChart4(${video_intervals_array});
+		drawChart6(${scatter_array});
 		}
 	else if(clicked_id == "a_course_activity_visualizations")
        {
        document.getElementById("a_course_activity_visualizations").className = "active-section";
        document.getElementById("div_course_activity_visualizations").style.display = "";
+       // Reload of visualizations for correct resizing
+       drawChart5(${vid_and_prob_daily_time});
+       LA_course_accesses.drawChart();
+       LA_chapter_time.drawChart();
+       LA_vid_prob_prog.drawChart();
+       LA_student_time_schedule.drawChart();
        }
 }
 
@@ -60,12 +75,7 @@ function reset_elements()
 	    
 	   document.getElementById("div_exercise_visualizations").style.display = "none";
 	   document.getElementById("div_video_visualizations").style.display = "none";
-	   document.getElementById("div_course_activity_visualizations").style.display = "none";
-	   
-	   // Way around fix so that Google Charts visualizations resize correctly...
-       document.getElementById("div_exercise_visualizations").style.visibility = "visible";
-       document.getElementById("div_video_visualizations").style.visibility = "visible";
-       document.getElementById("div_course_activity_visualizations").style.visibility = "visible";
+	   document.getElementById("div_course_activity_visualizations").style.display = "none";	   
 	}
 
 </script>
@@ -84,15 +94,15 @@ function reset_elements()
 <body>
 <div class="container">
 	<div class="profile-wrapper">
-		<div class="learning-analytics" >
+		<div class="learning-analytics">
 			<header>
-				<h1>${_("Analytics for course: {course}").format(course=course.display_name)}</h1>
+				<h1>${_("Learning Analytics for course: {course}").format(course=course.display_name)}</h1>
 			</header>
 
 			% if instructor_access or staff_access:
-            <h2>Learning Analytics Dashboard for Instructors</h2>
+            <h2>Dashboard for Instructors</h2>
             % else:
-            <h2>Learning Analytics Dashboard for Students</h2>
+            <h2>Dashboard for Students</h2>
             % endif
 			<div class="instructor-dashboard-wrapper-2">
                 <section class="instructor-dashboard-content-2" id="learning-analytics-dashboard-content">
@@ -108,7 +118,7 @@ function reset_elements()
 
 
 				
-			<div id="div_exercise_visualizations"   style="display: block;visibility: hidden">
+			<div id="div_exercise_visualizations"   style="display: none;">
 			    % if instructor_access or staff_access:             
                     <%include file="course_sort_students.html" />
                 % endif                
@@ -117,12 +127,20 @@ function reset_elements()
                 
                 <section>
                 <div class="sidebar">
-                    <h2>Problem time distribution </h2>
+                    <h2>Problem Time Distribution </h2>
+                    % if instructor_access or staff_access:
                     <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                        This visualization shows the percentage of time invested in seconds, for the selected students' option in each one of the problems of the course.                    
                     </p>
                     <br/>
                     <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows the percentage of time invested in seconds by you, in each one of the problems of the course.
+                    </p>
+                    % endif
+                    
+                    
                     <%include file="/xinsider/select_student.html" args="select_id='student_select3', usernames_in=usernames_in" />    
                 </div>
                 <!--Div that will hold the stacked bar chart-->
@@ -135,16 +153,22 @@ function reset_elements()
                 
 			</div>
 			
-			<div id="div_video_visualizations"   style="display: block;visibility: hidden">
+			<div id="div_video_visualizations"   style="display: none">
 			
 			    <section>
                 <div class="sidebar">
-                    <h2>Video time watched</h2>
+                    <h2>Video Time Watched</h2>
+                    % if instructor_access or staff_access:
                     <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                        This visualization shows in blue the percentage of different video segments watched by the student (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
                     </p>
                     <br/>
                     <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows in blue your percentage of different video segments watched (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
+                    </p>
+                    % endif                                                           
                     <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
                 </div>
                 <!--Div that will hold the stacked bar chart-->
@@ -155,14 +179,53 @@ function reset_elements()
                 </div>
                 </section>
                 
-                <section>
+
+            
+            <section>
                 <div class="sidebar">
-                    <h2>Video time distribution chart </h2>
+                    <h2>Repetitions of Video Intervals </h2>
+                    % if instructor_access or staff_access:
                     <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                        This visualization shows the number of different times or unique times (you can select both options) that all the students in a class have watched every section (divided in seconds) of the selected video. You can also pick students individually.  
+                    </p>
+                    <br/>                  
+                    <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows the number of different times that you have watched each section (divided in seconds) of the selected video.
+                    </p>
+                    <br/> 
+                    % endif 
+                                                          
+                    <%include file="/xinsider/select_student.html" args="select_id='student_select4', usernames_in=usernames_in" />
+                    <h5>Videos</h5>
+                    <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_ids" />
+                </div>
+                <!--Div that will hold the stacked bar chart-->
+                <div class="graph" id="video_intervals_chart">
+                </div>
+                <div class="legend">
+                <h3 id="legend_title"></h3>
+                </div>
+            </section>
+            
+            <section>
+                <div class="sidebar">
+                    <h2>Video Time Distribution</h2>
+                    % if instructor_access or staff_access:
+                    <p>
+                        This visualization shows the percentage of time invested by the student selected in each one of the videos of the course. In addition, you can put the mouse over each slice to read the amount of seconds spent in the video.
                     </p>
                     <br/>
                     <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows the percentage of time invested by you in each one of the videos of the course. In addition, you can put the mouse over each slice to read the amount of seconds spent in the video.
+                    </p>
+                    <br/> 
+                    % endif
+                    
+                    
                     <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
                 </div>
                 <!--Div that will hold the stacked bar chart-->
@@ -172,35 +235,22 @@ function reset_elements()
                 <h3 id="legend_title"></h3>
                 </div>
             </section>
-            
-            <section>
-                <div class="sidebar">
-                    <h2>Repetitions per video intervals </h2>
-                    <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
-                    </p>
-                    <br/>
-                    <h5>Options</h5>
-                    <%include file="/xinsider/select_student.html" args="select_id='student_select4', usernames_in=usernames_in" />
-                    <h5>Videos</h5>
-                          <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_ids" />
-                </div>
-                <!--Div that will hold the stacked bar chart-->
-                <div class="graph" id="video_intervals_chart">
-                </div>
-                <div class="legend">
-                <h3 id="legend_title"></h3>
-                </div>
-            </section>
                 
             <section>
                 <div class="sidebar">
-                    <h2>Video events distribution within video length</h2>
+                    <h2>Video Events Distribution</h2>
+                    % if instructor_access or staff_access:
                     <p>
-                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
+                        This visualization shows the time position of the different video events that students can trigger while watching videos. You can select among the different videos of the course and check the position of all events generated by the different students.
                     </p>
                     <br/>
                     <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows the time position of the video events that you have triggered while watching the selected video.
+                    </p>
+                    <br/>
+                    % endif
                     <%include file="/xinsider/select_student.html" args="select_id='student_select6', usernames_in=usernames_in" />
                     <h5>Videos</h5>
                           <%include file="/xinsider/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_ids" />
@@ -216,33 +266,46 @@ function reset_elements()
             
             </div>
             
-            <div id="div_course_activity_visualizations"   style="display: block;visibility: hidden">
             
+            
+            
+            
+            <div id="div_course_activity_visualizations"   style="display: none;">
+            
+            
+                <%include file="vid_prob_progress.html" />
+                
+                <section>
+                    <div class="sidebar">
+                        <h2>Daily Time on Exercises and Videos </h2>
+                        % if instructor_access or staff_access:
+                        <p>
+                            This visualization shows the time spent in exercises (red) and watching videos (blue) per each day that the student used the platform .
+                        </p>
+                        <br/>
+                        <h5>Options</h5>
+                        % else:
+                        <p>
+                            This visualization shows the time that you have spent doing exercises and watching videos per each day of the course.
+                        </p>
+                        % endif
+                        <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
+                    </div>
+                    <!--Div that will hold the stacked bar chart-->
+                    <div class="graph" id="vid_prob_daily_chart">
+                    </div>
+                    <div class="legend">
+                    <h3 id="legend_title"></h3>
+                    </div>
+                </section>
+                                
                 <%include file="course_accesses.html" />
                 
                 <%include file="chapter_time.html" />
-                
-	             <section>
-	                <div class="sidebar">
-	                    <h2>Daily time on video and problems </h2>
-	                    <p>
-	                        blablalbalbalballll descripcion oagfoasgjaosojagsojg jogosa gjo gasjog jgsaoo gjsgjsag sag jos
-	                    </p>
-	                    <br/>
-	                    <h5>Options</h5>
-	                    <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
-	                </div>
-	                <!--Div that will hold the stacked bar chart-->
-	                <div class="graph" id="vid_prob_daily_chart">
-	                </div>
-	                <div class="legend">
-	                <h3 id="legend_title"></h3>
-	                </div>
-	            </section>
-	            
+         
                 <%include file="students_time_schedule.html" />
 		
-		 <%include file="vid_prob_progress.html" />
+		 
             </div>
 
 			</div>
