@@ -17,6 +17,7 @@ google.setOnLoadCallback(
 // draws it.
 function drawChart6(json_data) {
   
+  var DEFAULT_COLORS = ["#3366cc","#dc3912","#ff9900","#109618","#990099"]
   // Instantiate and draw our chart, passing in some options.
   var chart = new google.visualization.ScatterChart(document.getElementById('dispersion_chart'));
   
@@ -29,7 +30,10 @@ function drawChart6(json_data) {
     var options = {vAxis: {textPosition: 'none', minValue: 0, ticks: [1,2,3,4,5]},
 		    hAxis: {title: 'Video position (s)'},
 		    width : 500,
-		    height : 400};
+		    height : 400,
+		    colors: DEFAULT_COLORS,
+		    legend: {position: 'none'}
+		    };
     
     chart.draw(data, options);
     

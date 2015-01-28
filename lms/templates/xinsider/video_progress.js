@@ -17,6 +17,8 @@ google.setOnLoadCallback(
 // draws it.
 function drawChart1(json_data) {
 
+  var PROGRESS_NON_OVERLAPPED = "#003366";
+  var PROGRESS_OVERLAPPED = "#0080FF";
   // Instantiate and draw our chart, passing in some options.
   var chart = new google.visualization.ColumnChart(document.getElementById('video_prog_chart'));
   
@@ -26,7 +28,11 @@ function drawChart1(json_data) {
     var data = new google.visualization.arrayToDataTable(json_data);
 
     // Set chart options
-    var options = {legend: {position: 'bottom'}};
+    var options = {legend: {position: 'bottom'},
+    		       colors: [PROGRESS_NON_OVERLAPPED, PROGRESS_OVERLAPPED],
+    		       legend: {position: 'none'},
+    
+    };
     
     chart.draw(data, options);
     

@@ -15,6 +15,7 @@ google.setOnLoadCallback(
 // draws it.
 function drawChart4(json_data) {
 
+	var VIDEO_TIMES = "#003366";
   // Instantiate and draw our chart, passing in some options.
   var chart = new google.visualization.SteppedAreaChart(document.getElementById('video_intervals_chart'));
   
@@ -28,7 +29,8 @@ function drawChart4(json_data) {
       vAxis: {title: 'Times'},
       hAxis: {title: 'Video position (s)'},
       isStacked: false,
-      legend: {position: 'bottom'}
+      colors: [VIDEO_TIMES],
+      legend: {position: 'none'},
     };
     
     chart.draw(data, options);

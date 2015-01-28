@@ -9,10 +9,10 @@ var LA_vid_prob_prog = (function(){
     var PASS_GROUP = -3;
     var FAIL_GROUP = -4;
 	
-	var PROBLEM_COLOR = "#dc3912";
-	var VIDEO_COLOR = "#3366cc";
-	var DEFAULT_TITLE = 'Problem-Video Progress';
-	var DEFAULT_LEGEND = ['Videos percent', 'Problems grades'];
+	var PROBLEM_COLOR = "#4c9900";
+	var VIDEO_COLOR = "#003366";
+	var DEFAULT_TITLE = 'Type of Progress';
+	var DEFAULT_LEGEND = ['Progress in videos', 'Grades in problems'];
 	var EMPTY_TEXT = 'No data';
 
 	var data = null;

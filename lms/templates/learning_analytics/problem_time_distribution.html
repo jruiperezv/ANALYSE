@@ -1,0 +1,27 @@
+<%namespace name="total_problem_time" file="/xinsider/per_problem_time.js"/>
+
+<script type="text/javascript"> ${total_problem_time.body(problem_distrib_json)} </script>
+
+   <section>
+	   <div class="sidebar">
+	       <h2>Problem Time Distribution </h2>
+	       % if instructor_access or staff_access:
+	       <p>
+	           This visualization shows the percentage of time invested in seconds, for the selected students' option in each one of the problems of the course.                    
+	       </p>
+	       <br/>
+	       <h5>Options</h5>
+	       % else:
+	       <p>
+	           This visualization shows the percentage of time invested in seconds by you, in each one of the problems of the course.
+	       </p>
+	       % endif
+	       
+	       
+	       <%include file="/xinsider/select_student.html" args="select_id='student_select3', usernames_in=usernames_in" />    
+	   </div>
+	   <!--Div that will hold the stacked bar chart-->
+	   <div class="graph2" id="per_problem_time">
+	   </div>
+
+   </section>

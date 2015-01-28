@@ -1,0 +1,31 @@
+<%namespace name="video_daily" file="/xinsider/video_daily.js"/>
+<script type="text/javascript"> ${video_daily.body(vid_and_prob_daily_time)} </script>
+
+
+<section>
+<div class="sidebar">
+    <h2>Daily Time on Exercises and Videos </h2>
+    % if instructor_access or staff_access:
+    <p>
+        This visualization shows the time spent in exercises (red) and watching videos (blue) per each day that the student used the platform .
+    </p>
+    <br/>
+    <h5>Options</h5>
+    % else:
+    <p>
+        This visualization shows the time that you have spent doing exercises and watching videos per each day of the course.
+    </p>
+    % endif
+    <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
+</div>
+<!--Div that will hold the stacked bar chart-->
+    <div class="graph" id="vid_prob_daily_chart">
+    </div>
+    <div class="legend">
+       <h3 id="video_progress_legend_title">Daily Time</h3>
+        <ul>
+            <li><span style='background:#003366;'></span>Video Time (s)</li>
+            <li><span style='background:#4c9900;'></span>Problem Time (s)</li>
+        </ul>
+    </div>
+</section>

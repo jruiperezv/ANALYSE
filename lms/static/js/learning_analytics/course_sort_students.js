@@ -6,9 +6,9 @@ var LA_course_sort_students = (function(){
 	//Colors
 	var COLOR_NOT = "#B8B8B8";
 	var COLOR_FAIL = "#B20000";
-	var COLOR_OK = "#008F00";
-	var COLOR_PROF = "#297ACC";
-	var DEF_TITLE = "Course categories";
+	var COLOR_OK = "#E5C80B";
+	var COLOR_PROF = "#4c9900";
+	var DEF_TITLE = "Grade categories";
 	var expanded = false;
 	var all_sections = null;
 	var wss = null;

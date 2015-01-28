@@ -1,0 +1,33 @@
+<%namespace name="video_intervals_stu" file="/xinsider/video_intervals_stu.js"/>
+<script type="text/javascript"> ${video_intervals_stu.body(video_intervals_array)} </script>
+
+            <section>
+                <div class="sidebar">
+                    <h2>Repetitions of Video Intervals </h2>
+                    % if instructor_access or staff_access:
+                    <p>
+                        This visualization shows the number of different times or unique times (you can select both options) that all the students in a class have watched every section (divided in seconds) of the selected video. You can also pick students individually.  
+                    </p>
+                    <br/>                  
+                    <h5>Options</h5>
+                    % else:
+                    <p>
+                        This visualization shows the number of different times that you have watched each section (divided in seconds) of the selected video.
+                    </p>
+                    <br/> 
+                    % endif 
+                                                          
+                    <%include file="/xinsider/select_student.html" args="select_id='student_select4', usernames_in=usernames_in" />
+                    <h5>Videos</h5>
+                    <%include file="/xinsider/select_video.html" args="select_id='video_select4', video_names=video_names, video_ids=video_ids" />
+                </div>
+                <!--Div that will hold the stacked bar chart-->
+                <div class="graph" id="video_intervals_chart">
+                </div>
+			    <div class="legend">
+			       <h3 id="video_intervals_legend_title">Repetitions</h3>
+			        <ul>
+			            <li><span style='background:#003366;'></span>Number of Times</li>			            
+			        </ul>
+			    </div>
+            </section>

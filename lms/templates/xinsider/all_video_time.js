@@ -27,7 +27,7 @@ function drawChart2(json_data) {
     var options = {
       pieHole: 0.4,
       height: '350',
-      width: '600'
+      chartArea: {width: '100%'}
     };
     
     chart.draw(data, options);

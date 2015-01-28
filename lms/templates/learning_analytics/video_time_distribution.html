@@ -1,0 +1,26 @@
+<%namespace name="total_video_time" file="/xinsider/all_video_time.js"/>           
+<script type="text/javascript"> ${total_video_time.body(video_distrib_json)} </script>            
+            
+<section>
+    <div class="sidebar">
+        <h2>Video Time Distribution</h2>
+        % if instructor_access or staff_access:
+        <p>
+            This visualization shows the percentage of time invested by the student selected in each one of the videos of the course. In addition, you can put the mouse over each slice to read the amount of seconds spent in the video.
+        </p>
+        <br/>
+        <h5>Options</h5>
+        % else:
+        <p>
+            This visualization shows the percentage of time invested by you in each one of the videos of the course. In addition, you can put the mouse over each slice to read the amount of seconds spent in the video.
+        </p>
+        <br/> 
+        % endif
+        
+        
+        <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
+    </div>
+    <!--Div that will hold the stacked bar chart-->
+    <div class="graph2" id="all_video_time">
+    </div>
+</section>

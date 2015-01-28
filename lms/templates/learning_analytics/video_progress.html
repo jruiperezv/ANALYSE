@@ -1,0 +1,31 @@
+<%namespace name="video_progress" file="/xinsider/video_progress.js"/>
+<script type="text/javascript"> ${video_progress.body(video_prog_json)} </script>
+
+
+<section>
+	<div class="sidebar">
+	    <h2>Video Time Watched</h2>
+	    % if instructor_access or staff_access:
+	    <p>
+	        This visualization shows in blue the percentage of different video segments watched by the student (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
+	    </p>
+	    <br/>
+	    <h5>Options</h5>
+	    % else:
+	    <p>
+	        This visualization shows in blue your percentage of different video segments watched (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
+	    </p>
+	    % endif                                                           
+	    <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
+	</div>
+	<!--Div that will hold the stacked bar chart-->
+	<div class="graph" id="video_prog_chart">
+	</div>
+	<div class="legend">
+	   <h3 id="video_progress_legend_title">Video Time Watched</h3>
+        <ul>
+            <li><span style='background:#003366;'></span>Total Video Time</li>
+            <li><span style='background:#0080FF;'></span>Different Video Time</li>
+        </ul>
+	</div>
+</section>

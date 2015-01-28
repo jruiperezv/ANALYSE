@@ -59,6 +59,12 @@
           width: flex-grid(5,9);
         }
         
+        .graph2 {
+          display: table-cell;
+          // padding-center: flex-gutter(9);
+          width: flex-grid(7,9);
+        }
+        
         .legend {
           border-left: 1px dashed #ddd;
           @include box-sizing(border-box);

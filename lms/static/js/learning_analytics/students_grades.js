@@ -11,9 +11,9 @@ var LA_student_grades = (function(){
 	//Colors
 	var COLOR_NOT = "#B8B8B8";
 	var COLOR_FAIL = "#B20000";
-	var COLOR_OK = "#008F00";
-	var COLOR_PROF = "#297ACC";
-	var DEFAULT_TITLE = "Course categories";
+	var COLOR_OK = "#E5C80B";
+	var COLOR_PROF = "#4c9900";
+	var DEFAULT_TITLE = "Grade categories";
 
 	var data = null;
 	var options = null;

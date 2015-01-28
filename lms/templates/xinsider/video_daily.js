@@ -19,7 +19,7 @@ function drawChart5(json_data) {
 
   // Instantiate and draw our chart, passing in some options.
   var chart = new google.visualization.ColumnChart(document.getElementById('vid_prob_daily_chart'));
-  
+  COLORS = ["#003366", "#4c9900"]
   if (json_data != null && json_data.length > 0) {
     
     // Create the data table.
@@ -29,7 +29,9 @@ function drawChart5(json_data) {
     var options = {vAxis: {title: 'Time (s)'},
 		   hAxis: {title: 'Date'},
 		   width: 500,
-		   height: 400};
+		   height: 400,
+		   colors: COLORS,
+		   legend: {position: 'none'},};
     
     chart.draw(data, options);
     
