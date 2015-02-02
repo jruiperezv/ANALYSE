@@ -2,7 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_student_grades = (function(){
-	var CHART_ID = 1;
+	var CHART_ID = 8;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;

@@ -2,7 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_course_accesses = (function(){
-	var CHART_ID = 3;
+	var CHART_ID = 10;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;

@@ -801,4 +801,63 @@ def hhmmss_to_secs(hhmmss):
         seconds = int(split[2])
         
     return hours*60*60+minutes*60+seconds
+
+#### UTILS TO JS
+
+def chapter_time_to_js(course_struct, students_time):
+    """
+    Formats time chapters data to send it to a javascript script
+    """
+    result = {}
+    for st_id in students_time.keys():
+        result[st_id] = []
+        for chapter in course_struct:
+            chapt_data = {'name': chapter['name'],
+                          'total_time': students_time[st_id][chapter['id']]['time_spent']}
+            graded_time = 0
+            ungraded_time = 0
+            for sequential in chapter['sequentials']:
+                if sequential['graded']:
+                    graded_time = (graded_time + 
+                                   students_time[st_id][chapter['id']]['sequentials'][sequential['id']]['time_spent'])
+                else:
+                    ungraded_time = (ungraded_time + 
+                                     students_time[st_id][chapter['id']]['sequentials'][sequential['id']]['time_spent'])
+            
+            chapt_data['graded_time'] = graded_time
+            chapt_data['ungraded_time'] = ungraded_time
+            result[st_id].append(chapt_data)
+            
+    return result
+
+
+def students_to_js(students_user):
+    result = []
+    for user in students_user:
+        result.append({'id':user.id, 'name':user.username })
+    return result
+
+
+def course_accesses_to_js(course_struct, students_course_accesses):
+    """
+    Formats course accesses data to send it to a javascript script
+    """
+    result = {}
+    for st_id in students_course_accesses.keys():
+        result[st_id] = []
+        for chapter in course_struct:
+            chapt_data = {'name': chapter['name'],
+                          'accesses': students_course_accesses[st_id][chapter['id']]['accesses'],
+                          'sequentials':[]}
+            for sequential in chapter['sequentials']:
+                seq_data = {'name': sequential['name'],
+                            'accesses': students_course_accesses[st_id][chapter['id']]['sequentials'][sequential['id']]['accesses'],
+                            'verticals':[]}
+                for vertical in sequential['verticals']:
+                    vert_data = {'name': vertical['name'],
+                                 'accesses': students_course_accesses[st_id][chapter['id']]['sequentials'][sequential['id']]['verticals'][vertical['id']]['accesses']}
+                    seq_data['verticals'].append(vert_data)
+                chapt_data['sequentials'].append(seq_data)
+            result[st_id].append(chapt_data)
+    return result
        

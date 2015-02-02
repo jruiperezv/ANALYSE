@@ -3,7 +3,7 @@ google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_student_time_schedule = (function(){
 	
-	var CHART_ID = 4;
+	var CHART_ID = 11;
 	var ALL_STUDENTS = -1;
 	//Colors
 	var DEFAULT_TITLE = "Time Schedule";

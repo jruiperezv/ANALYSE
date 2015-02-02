@@ -2,7 +2,7 @@
 google.load('visualization', '1.0', {'packages':['corechart']});
 
 var LA_chapter_time = (function(){
-	var CHART_ID = 2;
+	var CHART_ID = 9;
 	
 	var ALL_STUDENTS = -1;
    	var PROF_GROUP = -2;

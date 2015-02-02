@@ -1,5 +1,3 @@
-
- 
   <script type="text/javascript">
   
     function updateChart(event) {
@@ -32,12 +30,12 @@
 
       $.ajax({
 	// the URL for the request
-	url: "/courses/${course.id}/xinsider/chart_update",
+	url: "/courses/learning_analytics/chart_update",
     
 	// the data to send (will be converted to a query string)
 	data: {
 	    user_id   : sel_user,
-	    //course_id : '${course.id}',
+	    course_id : '${course.id}',
 	    chart : chart_number,
 	    video : video_name
 	},
@@ -96,7 +94,7 @@
     
       switch(chart_number) {
       
-        % if staff_access:
+    % if staff_access:
 	case 1:
 	    drawChart1(json);
 	    break;
