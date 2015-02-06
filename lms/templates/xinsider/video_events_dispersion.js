@@ -24,11 +24,13 @@ function drawChart6(json_data) {
   if (json_data != null && json_data.length > 0) {
     
     // Create the data table.
+
     var data = new google.visualization.arrayToDataTable(json_data);
 
     // Set chart options
-    var options = {vAxis: {textPosition: 'none', minValue: 0, ticks: [1,2,3,4,5]},
-		    hAxis: {title: 'Video position (s)'},
+    var options = {
+		    hAxis: {title: 'Position of the video event (seconds)', minValue: 0},
+    		vAxis: {textPosition: 'none', minValue: 0, ticks: [1,2,3,4,5]},
 		    width : 500,
 		    height : 400,
 		    colors: DEFAULT_COLORS,
@@ -44,7 +46,5 @@ function drawChart6(json_data) {
     noData.appendChild(node);
     document.getElementById('dispersion_chart').innerHTML = "";
     document.getElementById('dispersion_chart').appendChild(noData);
-    
   }  
-  
 }

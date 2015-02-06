@@ -4,7 +4,7 @@
 % if staff_access:
 <form class="inputtype option-input ">
   <select id="${select_id}">
-    <option value="&#35;average" selected>Student average</option>
+    <option value="&#35;average" selected>All students</option>
     <optgroup label="Students">
       % for student in usernames_in:
       <option${_(" value=\"{stu}\">{stu}").format(stu=student)}</option>

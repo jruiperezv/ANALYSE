@@ -6,13 +6,13 @@ import re
 import simplejson as json
 from track.backends.django import TrackingLog
 
-from data_processing import get_current_time, hhmmss_to_secs, to_iterable_module_id, video_events_to_scatter_chart
+from data_processing import get_current_time, hhmmss_to_secs, to_iterable_module_id, video_events_to_scatter_chart, determine_repetitions_vticks
 from models import ConsumptionModule, DailyConsumption, VideoIntervals, VideoEvents
     
 ##########################################################################
 ######### TRACKING LOGS DATA QUERYING (data processing purposes)##########
 ##########################################################################  
-    
+
 
 ############################# VIDEO EVENTS ###############################
  
@@ -257,7 +257,11 @@ def get_module_consumption(username, course_id, module_type):
         module_names.append(consumption_module.display_name)
         total_times.append(consumption_module.total_time)
         if module_type == u'video':
-            video_percentages.append(consumption_module.percent_viewed)        
+            video_percentages.append(consumption_module.percent_viewed)
+            
+    if sum(total_times) <= 0:
+        total_times = []
+        video_percentages = []
   
     return module_names, total_times, video_percentages
 
@@ -321,9 +325,14 @@ def get_user_video_intervals(username, video_id):
     jsonDec = json.decoder.JSONDecoder()
     hist_xaxis = jsonDec.decode(video_intervals.hist_xaxis)
     hist_yaxis = jsonDec.decode(video_intervals.hist_yaxis)
+    num_gridlines = 0
+    vticks = []
     
     # Interpolation to represent one-second-resolution intervals
     if sum(hist_yaxis) > 0:
+        maxRepetitions = max(hist_yaxis)
+        num_gridlines = maxRepetitions + 1 if maxRepetitions <= 3 else 5
+        vticks = determine_repetitions_vticks(maxRepetitions)
         ordinates_1s = []
         abscissae_1s = list(range(0,hist_xaxis[-1]+1))
         #ordinates_1s.append([])
@@ -337,6 +346,12 @@ def get_user_video_intervals(username, video_id):
         for abscissa_1s, ordinate_1s in zip(abscissae_1s, ordinates_1s):
             video_intervals_array.append([str(abscissa_1s), ordinate_1s])
     else:
-        video_intervals_array = None    
+        video_intervals_array = None
         
-    return json.dumps(video_intervals_array)
+    interval_chart_data = {
+        'video_intervals_array': video_intervals_array,
+        'num_gridlines': num_gridlines,
+        'vticks': vticks,
+    }    
+    
+    return json.dumps(interval_chart_data)

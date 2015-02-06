@@ -11,6 +11,20 @@ class UserVideoIntervals:
         self.disjointed_start = disjointed_start
         self.disjointed_end = disjointed_end
 
+    def __repr__(self):
+        return 'UserVideoIntervals<%r>' % ({
+            'student': self.student,
+            'video_id': self.video_id,
+            'interval_start': self.interval_start,
+            'interval_end': self.interval_end,
+            'vid_start_time': self.vid_start_time,
+            'vid_end_time': self.vid_end_time,
+            'disjointed_start': self.disjointed_start,
+            'disjointed_end': self.disjointed_end, 
+        },)
+            
+    def __unicode__(self):
+        return unicode(repr(self))        
         
 class UserTimeOnProblems:
   
@@ -20,3 +34,15 @@ class UserTimeOnProblems:
         self.problem_time = problem_time
         self.days = days
         self.daily_time = daily_time
+        
+    def __repr__(self):
+        return 'UserTimeOnProblems<%r>' % ({
+            'student': self.student,
+            'problem_id': self.problem_id,
+            'problem_time': self.problem_time,
+            'days': self.days,
+            'daily_time': self.daily_time,         
+        },)
+            
+    def __unicode__(self):
+        return unicode(repr(self))        

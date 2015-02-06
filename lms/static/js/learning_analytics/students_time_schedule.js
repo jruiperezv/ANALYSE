@@ -49,8 +49,10 @@ var LA_student_time_schedule = (function(){
 		};
 			
 		var dt = google.visualization.arrayToDataTable(data);
-		// Format data as xxx%
-		
+
+	    var formatter = new google.visualization.NumberFormat(
+	    	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+	    formatter.format(dt, 1);
 		var chart = new google.visualization.PieChart(document.getElementById('students_time_schedule_chart'));
 		chart.draw(dt, options);
 	};

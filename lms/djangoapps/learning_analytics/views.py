@@ -37,7 +37,7 @@ from data import chapter_time_to_js, students_to_js, course_accesses_to_js
 
 from models import *
 # Celery here acts as a simulator.
-from celeryHector import update_visualization_data, clean_xinsider_tables
+from celeryHector import update_visualization_data
 from data_querying import *
 from data_processing import *
 
@@ -90,13 +90,14 @@ def index(request, course_id):
               
   
     # Data for visualization in JSON
-    user_for_charts = '#average' if staff_access else user
+    user_for_charts = '#average' if (staff_access or instructor_access) else user
     kwargs = {
         'qualifiers': {'category': 'video', },
     }
           
     # This returns video descriptors in the order they appear on the course
     video_descriptors = videos_problems_in(course)[0]
+    video_durations = get_info_videos(video_descriptors)[2]
       
     video_ids_str = []
     course_video_names = []
@@ -107,11 +108,25 @@ def index(request, course_id):
     if len(video_descriptors) > 0:
         first_video_id = course_key.make_usage_key('video', video_descriptors[0].location.name)
           
-        # Video progress visualization. Video percentage seen total and non-overlapped.    
+        # Video progress visualization. Video percentage seen total and non-overlapped.
+        logging.info(course_key) 
+        logging.info(user_for_charts)   
         video_names, all_video_time, video_percentages = get_module_consumption(user_for_charts, course_key, 'video')
-        column_headers = ['Video', 'Non-overlapped (%)', 'Total vs. video length (%)']
-        video_prog_json = ready_for_arraytodatatable(column_headers, video_names, video_percentages, all_video_time)
-   
+        logging.info(all_video_time)  
+        logging.info(video_percentages)    
+        if all_video_time != []:
+            all_video_time_percent = map(truediv, all_video_time, video_durations)
+            all_video_time_percent = [int(round(x*100,0)) for x in all_video_time_percent]
+        else:
+            all_video_time_percent = all_video_time
+            
+        column_headers = ['Video', 'Different video time', 'Total video time']
+        video_prog_json = ready_for_arraytodatatable(column_headers, video_names, video_percentages, all_video_time_percent)
+        
+        
+        
+        
+        
         # Time spent on every video resource
         column_headers = ['Video', 'Time watched']
         video_distrib_json = ready_for_arraytodatatable(column_headers, video_names, all_video_time)
@@ -164,8 +179,7 @@ def index(request, course_id):
         students_course_accesses = course_accesses_to_js(cs, sa) 
         students_time_schedule = get_DB_time_schedule(course_key, user.id) 
         students_prob_vid_progress = get_DB_course_video_problem_progress(course_key, user.id) 
-            
-        
+                    
     context = {'course': course,
                'request': request,
                'user': user,
@@ -229,10 +243,24 @@ def chart_update(request):
             student_prob_vid_progress = get_DB_course_video_problem_progress(course_key, student_id=user_id)
             chart_info_json = dumps(student_prob_vid_progress)
         elif chart == VISUALIZATIONS_ID['LA_video_progress']:
-            # Video progress visualization. Video percentage seen total and non-overlapped.                 
+            # Video progress visualization. Video percentage seen total and non-overlapped.
+            course = get_course_with_access(user_id, action='load', course_key=course_key, depth=None, check_if_enrolled=False)         
+            video_descriptors = videos_problems_in(course)[0]
+            video_durations = get_info_videos(video_descriptors)[2] 
+
+            logging.info(course_key)                          
             video_names, all_video_time, video_percentages = get_module_consumption(user_id, course_key, 'video')
-            column_headers = ['Video', 'Non-overlapped (%)', 'Total vs. video length (%)']
-            chart_info_json = ready_for_arraytodatatable(column_headers, video_names, video_percentages, all_video_time)
+            logging.info(user_id)               
+            logging.info(all_video_time)  
+            logging.info(video_percentages)  
+            if all_video_time != []:
+                all_video_time_percent = map(truediv, all_video_time, video_durations)
+                all_video_time_percent = [int(round(x*100,0)) for x in all_video_time_percent]
+            else:
+                all_video_time_percent = all_video_time     
+            column_headers = ['Video', 'Different video time', 'Total video time']
+            chart_info_json = ready_for_arraytodatatable(column_headers, video_names, video_percentages, all_video_time_percent)
+
         elif chart == VISUALIZATIONS_ID['LA_video_time']:
             # Time spent on every video resource              
             video_names, all_video_time = get_module_consumption(user_id, course_key, 'video')[0:2]

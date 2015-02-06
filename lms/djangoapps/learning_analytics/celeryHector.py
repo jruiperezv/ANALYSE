@@ -50,7 +50,7 @@ def update_visualization_data(course_key=None):
         'change_speed_events' : '',
         'seek_from_events' : '',
         'seek_to_events' : '',
-    }        
+    }
     
     if course_key is not None:
         # update data for the provided course
@@ -77,7 +77,7 @@ def update_visualization_data(course_key=None):
             for problem_id in problem_ids:
                 problem_time, days, daily_time = time_on_problem(username_in, problem_id)
                 users_time_on_problems.append(UserTimeOnProblems(username_in, problem_id, 
-                                                                 problem_time, days, daily_time))                
+                                                                 problem_time, days, daily_time))          
 
         # ConsumptionModule table data
         accum_video_percentages = []
@@ -97,19 +97,24 @@ def update_visualization_data(course_key=None):
             elif video_percentages != []:
                 for j in range(0, len(accum_all_video_time)):
                     accum_video_percentages[j] += video_percentages[j]
-                    accum_all_video_time[j] += all_video_time[j]              
+                    accum_all_video_time[j] += all_video_time[j]
             for i in range(0,len(video_percentages)):
                 kw_consumption_module['module_key'] = video_module_keys[i]
                 kw_consumption_module['display_name'] = video_names[i]
                 kw_consumption_module['percent_viewed'] = video_percentages[i]
                 kw_consumption_module['total_time'] = all_video_time[i]
-                new_entry = ConsumptionModule(**kw_consumption_module)
+                try:
+                    new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                    new_entry.percent_viewed = kw_consumption_module['percent_viewed']
+                    new_entry.total_time = kw_consumption_module['total_time']
+                except ConsumptionModule.DoesNotExist:
+                    new_entry = ConsumptionModule(**kw_consumption_module)
                 new_entry.save()
             #problem modules
             kw_consumption_module['module_type'] = 'problem'
             kw_consumption_module['percent_viewed'] = None
             low_index = usernames_in.index(username_in)*len(problem_names)
-            high_index = low_index + len(problem_names)            
+            high_index = low_index + len(problem_names)   
             time_x_problem = problem_consumption(users_time_on_problems[low_index:high_index])
             if time_x_problem != [] and accum_problem_time == []:
                 accum_problem_time = time_x_problem
@@ -120,19 +125,28 @@ def update_visualization_data(course_key=None):
                     kw_consumption_module['module_key'] = problem_ids[i]
                     kw_consumption_module['display_name'] = problem_names[i]
                     kw_consumption_module['total_time'] = time_x_problem[i]                
-                    new_entry = ConsumptionModule(**kw_consumption_module)
+                    try:
+                        new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                        new_entry.total_time = kw_consumption_module['total_time']
+                    except ConsumptionModule.DoesNotExist:
+                        new_entry = ConsumptionModule(**kw_consumption_module)                    
                     new_entry.save()
         # average values
         kw_consumption_module['student'] = '#average'
         kw_consumption_module['module_type'] = 'video'                
         for i in range(0, len(accum_video_percentages)):
-            accum_video_percentages[i] = truediv(accum_video_percentages[i],len(usernames_in))
-            accum_all_video_time[i] = truediv(accum_all_video_time[i],len(usernames_in))
+            accum_video_percentages[i] = int(round(truediv(accum_video_percentages[i],len(usernames_in)),0))
+            accum_all_video_time[i] = int(round(truediv(accum_all_video_time[i],len(usernames_in)),0))
             kw_consumption_module['module_key'] = video_module_keys[i]
             kw_consumption_module['display_name'] = video_names[i]
             kw_consumption_module['percent_viewed'] = accum_video_percentages[i]
             kw_consumption_module['total_time'] = accum_all_video_time[i]
-            new_entry = ConsumptionModule(**kw_consumption_module)
+            try:
+                new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                new_entry.percent_viewed = kw_consumption_module['percent_viewed']
+                new_entry.total_time = kw_consumption_module['total_time']
+            except ConsumptionModule.DoesNotExist:
+                new_entry = ConsumptionModule(**kw_consumption_module)            
             new_entry.save()
         kw_consumption_module['module_type'] = 'problem'
         kw_consumption_module['percent_viewed'] = None
@@ -141,7 +155,11 @@ def update_visualization_data(course_key=None):
             kw_consumption_module['module_key'] = problem_ids[i]
             kw_consumption_module['display_name'] = problem_names[i]
             kw_consumption_module['total_time'] = accum_problem_time[i]
-            new_entry = ConsumptionModule(**kw_consumption_module)
+            try:
+                new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                new_entry.total_time = kw_consumption_module['total_time']
+            except ConsumptionModule.DoesNotExist:
+                new_entry = ConsumptionModule(**kw_consumption_module)            
             new_entry.save()
  
         # VideoIntervals table data
@@ -164,7 +182,12 @@ def update_visualization_data(course_key=None):
                 hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
                 kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
                 kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
-                new_entry = VideoIntervals(**kw_video_intervals)
+                try:
+                    new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                    new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                    new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+                except VideoIntervals.DoesNotExist:
+                    new_entry = VideoIntervals(**kw_video_intervals)        
                 new_entry.save()
             # Total times these video intervals have been viewed
             kw_video_intervals['student'] = '#class_total_times'
@@ -172,7 +195,12 @@ def update_visualization_data(course_key=None):
             hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
             kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
             kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
-            new_entry = VideoIntervals(**kw_video_intervals)   
+            try:
+                new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+            except VideoIntervals.DoesNotExist:
+                new_entry = VideoIntervals(**kw_video_intervals)                    
             new_entry.save()
             
             # Total times these video intervals have been viewed
@@ -182,7 +210,12 @@ def update_visualization_data(course_key=None):
             hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
             kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
             kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
-            new_entry = VideoIntervals(**kw_video_intervals)
+            try:
+                new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+            except VideoIntervals.DoesNotExist:
+                new_entry = VideoIntervals(**kw_video_intervals)                    
             new_entry.save()
             
         # DailyConsumption table data
@@ -210,24 +243,45 @@ def update_visualization_data(course_key=None):
             kw_daily_consumption['module_type'] = 'video'
             kw_daily_consumption['dates'] = simplejson.dumps(video_days)
             kw_daily_consumption['time_per_date'] = simplejson.dumps(video_daily_time)
-            new_entry = DailyConsumption(**kw_daily_consumption)
+            try:
+                new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+                new_entry.dates = kw_daily_consumption['dates']
+                new_entry.time_per_date = kw_daily_consumption['time_per_date']
+            except DailyConsumption.DoesNotExist:
+                new_entry = DailyConsumption(**kw_daily_consumption)
             new_entry.save()            
             kw_daily_consumption['module_type'] = 'problem'
             kw_daily_consumption['dates'] = simplejson.dumps(problem_days)
             kw_daily_consumption['time_per_date'] = simplejson.dumps(problem_daily_time)
-            new_entry = DailyConsumption(**kw_daily_consumption)
+            try:
+                new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+                new_entry.dates = kw_daily_consumption['dates']
+                new_entry.time_per_date = kw_daily_consumption['time_per_date']
+            except DailyConsumption.DoesNotExist:
+                new_entry = DailyConsumption(**kw_daily_consumption)            
             new_entry.save()
+            
         kw_daily_consumption['student'] = '#average'
         problem_days, problem_daily_time = class_time_on(accum_prob_days, accum_prob_daily_time)
         kw_daily_consumption['dates'] = simplejson.dumps(problem_days)
         kw_daily_consumption['time_per_date'] = simplejson.dumps(problem_daily_time)
-        new_entry = DailyConsumption(**kw_daily_consumption)
-        new_entry.save()                
+        try:
+            new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+            new_entry.dates = kw_daily_consumption['dates']
+            new_entry.time_per_date = kw_daily_consumption['time_per_date']
+        except DailyConsumption.DoesNotExist:
+            new_entry = DailyConsumption(**kw_daily_consumption)        
+        new_entry.save()
         kw_daily_consumption['module_type'] = 'video'
         video_days, video_daily_time = class_time_on(accum_vid_days, accum_vid_daily_time)
         kw_daily_consumption['dates'] = simplejson.dumps(video_days)
         kw_daily_consumption['time_per_date'] = simplejson.dumps(video_daily_time)
-        new_entry = DailyConsumption(**kw_daily_consumption)
+        try:
+            new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+            new_entry.dates = kw_daily_consumption['dates']
+            new_entry.time_per_date = kw_daily_consumption['time_per_date']
+        except DailyConsumption.DoesNotExist:
+            new_entry = DailyConsumption(**kw_daily_consumption)
         new_entry.save()            
             
         # VideoEvents table data
@@ -243,21 +297,17 @@ def update_visualization_data(course_key=None):
                     continue
                 for event in VIDEO_EVENTS:
                     kw_video_events[event + '_events'] = simplejson.dumps(events_times[VIDEO_EVENTS.index(event)])
-                new_entry = VideoEvents(**kw_video_events)
+                try:
+                    new_entry = VideoEvents.objects.get(student=kw_video_events['student'], module_key=kw_video_events['module_key'])
+                    new_entry.play_events = kw_video_events['play_events']
+                    new_entry.pause_events = kw_video_events['pause_events']
+                    new_entry.change_speed_events = kw_video_events['change_speed_events']
+                    new_entry.seek_from_events = kw_video_events['seek_from_events']
+                    new_entry.seek_to_events = kw_video_events['seek_to_events']                    
+                except VideoEvents.DoesNotExist:
+                    new_entry = VideoEvents(**kw_video_events)                
                 new_entry.save()
  
     else:
         pass
       
-
-# Delete the contents in xinsider tables
-# for a certain course
-def clean_xinsider_tables(course_key=None):
-
-    if course_key is not None:
-        ConsumptionModule.objects.filter(course_key=course_key).delete()
-        DailyConsumption.objects.filter(course_key=course_key).delete()
-        VideoIntervals.objects.filter(course_key=course_key).delete()
-        VideoEvents.objects.filter(course_key=course_key).delete()
-    else:
-        pass

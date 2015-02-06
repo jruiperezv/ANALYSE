@@ -24,9 +24,14 @@ function drawChart5(json_data) {
     
     // Create the data table.
     var data = new google.visualization.arrayToDataTable(json_data);
-
+    
+    var formatter = new google.visualization.NumberFormat(
+  	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+    formatter.format(data, 1);
+    formatter.format(data, 2);
+    
     // Set chart options
-    var options = {vAxis: {title: 'Time (s)'},
+    var options = {vAxis: {title: 'Time'},
 		   hAxis: {title: 'Date'},
 		   width: 500,
 		   height: 400,

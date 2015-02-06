@@ -57,6 +57,7 @@ var LA_chapter_time = (function(){
 				legend: {position: 'none'},
 				chartArea: { height: '75%',
 					         width: '75%',},
+				
 			};
 			document.getElementById('chapter_time_legend_title').innerHTML = DEFAULT_TITLE;
 	
@@ -73,6 +74,10 @@ var LA_chapter_time = (function(){
 		}
 		
 		var chart = new google.visualization.PieChart(document.getElementById('chart_chapter_time'));
+		
+	    var formatter = new google.visualization.NumberFormat(
+	    	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+	    formatter.format(data, 1);
 		chart.draw(data, options);
 		
 		// Event handlers

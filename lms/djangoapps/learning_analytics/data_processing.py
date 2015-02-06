@@ -47,18 +47,20 @@ def video_consumption(user_video_intervals, video_durations):
         video_time = 0
         interval_start = video.interval_start
         interval_end = video.interval_end
-        for start, end, int_start, int_end in zip(aux_start,aux_end, interval_start, interval_end):
+        for start, end in zip(aux_start,aux_end):
             interval_sum += end - start
-            video_time += int_end - int_start
+        for int_start, int_end in zip(interval_start, interval_end):
+            video_time += int_end - int_start            
         stu_video_seen.append(interval_sum)
-        all_video_time.append(video_time)        
-        
+        all_video_time.append(video_time)
     if sum(stu_video_seen) <= 0:
-        return [], []
-        
+        return [],[]
+        '''
+        no_video_viewed = [0 for i in user_video_intervals]
+        return no_video_viewed, no_video_viewed
+        '''
     video_percentages = map(truediv, stu_video_seen, video_durations)
-    video_percentages = [val*100 for val in video_percentages]
-    video_percentages = [int(round(val,0)) for val in video_percentages]
+    video_percentages = [int(round(val*100,0)) for val in video_percentages]
     # Artificially ensures  percentages do not surpass 100%, which
     # could happen slightly from the 1s adjustment in id_to_length function
     for i in range(0,len(video_percentages)):
@@ -239,11 +241,11 @@ def get_current_time(video_event):
     current_time = []
     
     if video_event.event_type == 'play_video' or video_event.event_type == 'pause_video':
-        current_time = [eval(video_event.event)['currentTime']]
+        current_time = [round(eval(video_event.event)['currentTime'])]
     elif video_event.event_type == 'speed_change_video':
-        current_time = [eval(video_event.event)['current_time']]
+        current_time = [round(eval(video_event.event)['current_time'])]
     elif video_event.event_type == 'seek_video':
-        current_time = [eval(video_event.event)['old_time'], eval(video_event.event)['new_time']]
+        current_time = [round(eval(video_event.event)['old_time']), round(eval(video_event.event)['new_time'])]
     
     return current_time
 
@@ -293,45 +295,6 @@ def id_to_length(youtube_id):
     # Maximum video position registered in the platform differs around 1s
     # wrt youtube duration. Thus 1 is subtracted to compensate.
     return eval(entry.media.duration.seconds) - 1
-
-        
-# DEPRECATED in Celery-oriented architecture version
-# Returns info to represent a histogram with video intervals watched 
-"""   
-def video_histogram_info(user_id, video_module_id, video_duration, course):
-
-    CLASS_AGGREGATES = ['#class_total_times', '#one_stu_one_time']
-    if user_id in CLASS_AGGREGATES:
-        interval_start = []
-        interval_end = []
-        for username_in in usernames_in:
-            if user_id == '#class_total_times':
-                startings, endings = find_video_intervals(username_in, video_module_id)[0:2]
-            elif user_id == '#one_stu_one_time':
-                startings, endings = video_len_watched(username_in, video_module_id)
-            interval_start = interval_start + startings
-            interval_end = interval_end + endings
-        # sorting intervals
-        interval_start, interval_end = zip(*sorted(zip(interval_start, interval_end)))
-        interval_start = list(interval_start)
-        interval_end = list(interval_end)
-    else:
-        interval_start, interval_end = find_video_intervals(user_id, video_module_id)[0:2]
-    
-    hist_xaxis = list(interval_start + interval_end) # merge the two lists
-    hist_xaxis.append(0) # assure xaxis stems from the beginning (video_pos = 0 secs)
-    hist_xaxis.append(int(video_duration)) # assure xaxis covers up to video length
-    hist_xaxis = list(set(hist_xaxis)) # to remove duplicates
-    hist_xaxis.sort() # abscissa values for histogram    
-    midpoints = []
-    for index in range(0, len(hist_xaxis)-1):
-        midpoints.append((hist_xaxis[index] + hist_xaxis[index+1])/float(2))
-
-    # ordinate values for histogram
-    hist_yaxis = get_hist_height(interval_start, interval_end, midpoints)# set histogram height
-    
-    return hist_xaxis, hist_yaxis
-"""
     
 ##########################################################################
 ######################## PROBLEM-ONLY FUNCTIONS ##########################
@@ -346,7 +309,7 @@ def problem_consumption(user_time_on_problems):
         time_x_problem.append(problem.problem_time)
     if sum(time_x_problem) <= 0:
         time_x_problem = []
-    
+        
     return time_x_problem
 
     
@@ -414,7 +377,7 @@ def videos_problems_in(course_descriptor):
 
     return video_problem_list
 
-    
+
 # Computes the aggregated time (in seconds) all students in a course (the whole class)
 # have dedicated to a module type on a daily basis
 #TODO Does it make sense to change the resolution to minutes?
@@ -508,3 +471,18 @@ def to_iterable_module_id(block_usage_locator):
 def datelist_to_isoformat(date_list):
   
     return [date.isoformat() for date in date_list]
+
+
+def determine_repetitions_vticks(maxRepetitions):
+
+    # parameter to set the number of gridlines apart from 0.
+    # Number of vertical ticks necessary.
+    NUM_GRIDLINES = 4 
+    if maxRepetitions <= 4:
+        vticks = range(0, maxRepetitions+1)
+    else:
+        # smallest number greater than maxRepetitions multiple of NUM_GRIDLINES
+        smallest_x_greater = (maxRepetitions/NUM_GRIDLINES + 1) * NUM_GRIDLINES
+        vticks = range(0, smallest_x_greater+1, NUM_GRIDLINES)
+  
+    return vticks

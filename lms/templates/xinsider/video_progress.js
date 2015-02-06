@@ -26,11 +26,17 @@ function drawChart1(json_data) {
     
     // Create the data table.
     var data = new google.visualization.arrayToDataTable(json_data);
+    
+    var formatter = new google.visualization.NumberFormat(
+  	      {suffix: '%', fractionDigits: 0});
+    formatter.format(data, 1);
+    formatter.format(data, 2);
 
     // Set chart options
-    var options = {legend: {position: 'bottom'},
-    		       colors: [PROGRESS_NON_OVERLAPPED, PROGRESS_OVERLAPPED],
+    var options = {colors: [PROGRESS_NON_OVERLAPPED, PROGRESS_OVERLAPPED],
     		       legend: {position: 'none'},
+    		       vAxis: {minValue: 0,
+    		    	   	   maxValue: 100}
     
     };
     

@@ -14,23 +14,26 @@ google.setOnLoadCallback(
 // instantiates the chart, passes in the data and
 // draws it.
 function drawChart4(json_data) {
-
+	
+	var num_gridlines = json_data['num_gridlines'];
+	var vticks = json_data['vticks'];
+	var chart_data = json_data['video_intervals_array'];
 	var VIDEO_TIMES = "#003366";
   // Instantiate and draw our chart, passing in some options.
   var chart = new google.visualization.SteppedAreaChart(document.getElementById('video_intervals_chart'));
   
-  if (json_data != null && json_data.length > 0) {
+  if (chart_data != null && chart_data.length > 0) {
     
     // Create the data table.
-    var data = new google.visualization.arrayToDataTable(json_data);
+    var data = new google.visualization.arrayToDataTable(chart_data);
 
     // Set chart options
     var options = {
-      vAxis: {title: 'Times'},
+      vAxis: {title: 'Times', minValue:0, format:'#', gridlines: {count: num_gridlines}, ticks: vticks},
       hAxis: {title: 'Video position (s)'},
       isStacked: false,
       colors: [VIDEO_TIMES],
-      legend: {position: 'none'},
+      legend: {position: 'none'},      
     };
     
     chart.draw(data, options);

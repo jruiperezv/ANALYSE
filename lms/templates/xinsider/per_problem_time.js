@@ -20,8 +20,14 @@ function drawChart3(json_data) {
   
   if (json_data != null && json_data.length > 0) {
     
+	  
+	  
     // Create the data table.
     var data = new google.visualization.arrayToDataTable(json_data);
+    
+    var formatter = new google.visualization.NumberFormat(
+    	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+    formatter.format(data, 1);
 
     // Set chart options
     var options = {

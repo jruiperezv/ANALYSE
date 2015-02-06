@@ -22,6 +22,10 @@ function drawChart2(json_data) {
     
     // Create the data table.
     var data = new google.visualization.arrayToDataTable(json_data);
+    
+    var formatter = new google.visualization.NumberFormat(
+  	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+    formatter.format(data, 1);
 
     // Set chart options
     var options = {
