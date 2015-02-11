@@ -26,7 +26,12 @@ function change_section(clicked_id) {
 		document.getElementById("div_exercise_visualizations").style.display = "";
 		// Reload of visualizations for correct resizing
 		LA_student_grades.drawChart();
-		LA_course_sort_students.drawChart();
+		
+		if ('${instructor_access}' == 'True' || '${staff_access}' == 'True')
+		{
+			LA_course_sort_students.drawChart();
+		}
+		
 		drawChart3(${problem_distrib_json});
 		}
 	else if(clicked_id == "a_video_visualizations")
@@ -90,7 +95,7 @@ function reset_elements()
 			<div class="instructor-dashboard-wrapper-2">
                 <section class="instructor-dashboard-content-2" id="learning-analytics-dashboard-content">
 				    <ul class="instructor-nav">
-				        <li class="nav-item"><a href="#" id="a_exercise_visualizations" onclick="change_section(this.id);">Exercise visualizations</a></li>
+				        <li class="nav-item"><a href="#" id="a_exercise_visualizations" onclick="change_section(this.id);">Problem visualizations</a></li>
 				        <li class="nav-item"><a href="#" id="a_video_visualizations" onclick="change_section(this.id);">Video visualizations</a></li>
 				        <li class="nav-item"><a href="#" id="a_course_activity_visualizations" onclick="change_section(this.id);">Course activity visualizations</a></li>
 				    </ul>

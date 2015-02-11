@@ -4,6 +4,7 @@
 from courseware.courses import get_course_by_id
 from django.utils import simplejson
 from student.models import CourseEnrollment
+import logging
 
 from models import *
 from classes import *
@@ -119,24 +120,26 @@ def update_visualization_data(course_key=None):
             if time_x_problem != [] and accum_problem_time == []:
                 accum_problem_time = time_x_problem
             elif time_x_problem != []:
-                for j in range(0, len(accum_all_video_time)):
+                for j in range(0, len(accum_problem_time)):
                     accum_problem_time[j] += time_x_problem[j]
-                for i in range(0,len(problem_names)):
-                    kw_consumption_module['module_key'] = problem_ids[i]
-                    kw_consumption_module['display_name'] = problem_names[i]
-                    kw_consumption_module['total_time'] = time_x_problem[i]                
-                    try:
-                        new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
-                        new_entry.total_time = kw_consumption_module['total_time']
-                    except ConsumptionModule.DoesNotExist:
-                        new_entry = ConsumptionModule(**kw_consumption_module)                    
-                    new_entry.save()
+                
+            for i in range(0,len(problem_names)):
+                kw_consumption_module['module_key'] = problem_ids[i]
+                kw_consumption_module['display_name'] = problem_names[i]
+                kw_consumption_module['total_time'] = time_x_problem[i]       
+                try:
+                    new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                    new_entry.total_time = kw_consumption_module['total_time']
+                except ConsumptionModule.DoesNotExist:
+                    new_entry = ConsumptionModule(**kw_consumption_module)                    
+                new_entry.save()
+        
         # average values
         kw_consumption_module['student'] = '#average'
         kw_consumption_module['module_type'] = 'video'                
         for i in range(0, len(accum_video_percentages)):
             accum_video_percentages[i] = int(round(truediv(accum_video_percentages[i],len(usernames_in)),0))
-            accum_all_video_time[i] = int(round(truediv(accum_all_video_time[i],len(usernames_in)),0))
+            #accum_all_video_time[i] = int(round(truediv(accum_all_video_time[i],len(usernames_in)),0))
             kw_consumption_module['module_key'] = video_module_keys[i]
             kw_consumption_module['display_name'] = video_names[i]
             kw_consumption_module['percent_viewed'] = accum_video_percentages[i]
@@ -151,7 +154,8 @@ def update_visualization_data(course_key=None):
         kw_consumption_module['module_type'] = 'problem'
         kw_consumption_module['percent_viewed'] = None
         for i in range(0, len(accum_problem_time)):
-            accum_problem_time[i] = truediv(accum_problem_time[i],len(usernames_in))
+            # Commented because we do not want the mean here but the total time
+            #accum_problem_time[i] = truediv(accum_problem_time[i],len(usernames_in))
             kw_consumption_module['module_key'] = problem_ids[i]
             kw_consumption_module['display_name'] = problem_names[i]
             kw_consumption_module['total_time'] = accum_problem_time[i]

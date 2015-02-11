@@ -7,13 +7,13 @@
 	    <h2>Video Time Watched</h2>
 	    % if instructor_access or staff_access:
 	    <p>
-	        This visualization shows in blue the percentage of different video segments watched by the student (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
+	        This visualization shows in dark blue the percentage of different video watched (it does not count if the same parts are watched several times, the max. is the 100% of the video) and in light blue the percentage of total video watched (total amount of time spent compared to the length of the video in percentage). You can filter by all the students or each student individually.
 	    </p>
 	    <br/>
 	    <h5>Options</h5>
 	    % else:
 	    <p>
-	        This visualization shows in blue your percentage of different video segments watched (non-overlapped, max 100%) and in red the total percentage of video watched (segments can be repeated, no max).
+	        This visualization shows in dark blue the percentage of different video watched (it does not count if the same parts are watched several times, the max. is the 100% of the video) and in light blue the percentage of total video watched (total amount of time spent compared to the length of the video in percentage).
 	    </p>
 	    % endif                                                           
 	    <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />

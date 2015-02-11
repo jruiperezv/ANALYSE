@@ -76,7 +76,7 @@ var LA_chapter_time = (function(){
 		var chart = new google.visualization.PieChart(document.getElementById('chart_chapter_time'));
 		
 	    var formatter = new google.visualization.NumberFormat(
-	    	      {suffix: ' min', pattern:'#,#', fractionDigits: '1'});
+	    	      {suffix: ' min', pattern:'#,#', fractionDigits: '2'});
 	    formatter.format(data, 1);
 		chart.draw(data, options);
 		

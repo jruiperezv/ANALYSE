@@ -447,7 +447,7 @@ def join_video_problem_time(video_days, video_daily_time, problem_days, problem_
         except ValueError:
             pass
     # Insert at the list start the column information
-    output_array.insert(0, ['Day', 'Video time (s)', 'Problem time (s)'])
+    output_array.insert(0, ['Day', 'Video time', 'Problem time'])
     
     return simplejson.dumps(output_array)
 

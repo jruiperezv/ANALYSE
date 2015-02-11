@@ -813,7 +813,7 @@ def chapter_time_to_js(course_struct, students_time):
         result[st_id] = []
         for chapter in course_struct:
             chapt_data = {'name': chapter['name'],
-                          'total_time': students_time[st_id][chapter['id']]['time_spent']}
+                          'total_time': round(truediv(students_time[st_id][chapter['id']]['time_spent'], 60),2)}
             graded_time = 0
             ungraded_time = 0
             for sequential in chapter['sequentials']:
@@ -824,8 +824,8 @@ def chapter_time_to_js(course_struct, students_time):
                     ungraded_time = (ungraded_time + 
                                      students_time[st_id][chapter['id']]['sequentials'][sequential['id']]['time_spent'])
             
-            chapt_data['graded_time'] = graded_time
-            chapt_data['ungraded_time'] = ungraded_time
+            chapt_data['graded_time'] = round(truediv(graded_time, 60),2)
+            chapt_data['ungraded_time'] = round(truediv(ungraded_time, 60),2)
             result[st_id].append(chapt_data)
             
     return result

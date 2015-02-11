@@ -14,12 +14,12 @@
 </script>
 <section>
 	<div class="sidebar">
-		<h2>Exercise and Video Progression</h2>
+		<h2>Problem and Video Progression</h2>
 		
 		
 		% if instructor_access or staff_access:
 		<p>
-			This visualization shows the progression of the student, which is represented in exercises correctly solved (red) and percentage of different video seen (blue) per each day of the course.
+			This visualization shows the progression of the student, which is represented in problems' grades (green) and percentage of different video seen (green) per each day of the course. You can filter by all the students or each student individually.
 		</p>
 		<br/>
 		<h5>Options</h5>
@@ -30,7 +30,7 @@
 		</select>
 		% else:
 		<p>
-			This visualization shows your progression represented in exercises correctly solved (red) and percentage of different video seen (blue) per each day of the course.
+			This visualization shows your progression represented in problems' grades (green) and percentage of different video seen (blue) per each day of the course.
 		</p>
 		<select id="vid_prob_prog_options" style='display:none'>
 			<option value="all">All students</option>

@@ -4,16 +4,16 @@
 
 <section>
 <div class="sidebar">
-    <h2>Daily Time on Exercises and Videos </h2>
+    <h2>Daily Time on Problems and Videos </h2>
     % if instructor_access or staff_access:
     <p>
-        This visualization shows the time spent in exercises (red) and watching videos (blue) per each day that the student used the platform .
+        This visualization shows the time spent in problems (green) and watching videos (blue) per each day. You can filter by all the students or each student individually.
     </p>
     <br/>
     <h5>Options</h5>
     % else:
     <p>
-        This visualization shows the time that you have spent doing exercises and watching videos per each day of the course.
+        This visualization shows the time that you have spent doing problems (green) and watching videos (blue) per each day of the course.
     </p>
     % endif
     <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            

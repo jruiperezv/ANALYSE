@@ -5,6 +5,8 @@ import math
 import re
 import simplejson as json
 from track.backends.django import TrackingLog
+from student.models import CourseEnrollment
+from operator import truediv
 
 from data_processing import get_current_time, hhmmss_to_secs, to_iterable_module_id, video_events_to_scatter_chart, determine_repetitions_vticks
 from models import ConsumptionModule, DailyConsumption, VideoIntervals, VideoEvents
@@ -245,7 +247,7 @@ def time_on_problem(student, problem_module_id):
 
 
 # Get info for Video time watched chart
-def get_module_consumption(username, course_id, module_type):
+def get_module_consumption(username, course_id, module_type, visualization):
   
     #shortlist criteria
     shortlist = Q(student=username, course_key=course_id, module_type = module_type)
@@ -255,9 +257,18 @@ def get_module_consumption(username, course_id, module_type):
     video_percentages = []
     for consumption_module in consumption_modules:
         module_names.append(consumption_module.display_name)
-        total_times.append(consumption_module.total_time)
-        if module_type == u'video':
-            video_percentages.append(consumption_module.percent_viewed)
+        
+        if (visualization == 'total_time_vid_prob'):   
+            # From minutes to seconds              
+            total_times.append(round(truediv(consumption_module.total_time,60),2))
+            
+        elif (visualization == 'video_progress'):                           
+            video_percentages.append(consumption_module.percent_viewed)            
+            if(username == '#average'):
+                # Dividing total time between the number of students to get avg time on video which is used in video progress
+                total_times.append(int(round(truediv(consumption_module.total_time,len(CourseEnrollment.users_enrolled_in(course_id))),0)))
+            else:
+                total_times.append(consumption_module.total_time)
             
     if sum(total_times) <= 0:
         total_times = []
@@ -276,15 +287,19 @@ def get_daily_consumption(username, course_id, module_type):
         daily_consumption = DailyConsumption.objects.get(student=username, course_key=course_id, module_type = module_type)
         jsonDec = json.decoder.JSONDecoder()
         days = jsonDec.decode(daily_consumption.dates)
+        # From minutes to seconds
         daily_time = jsonDec.decode(daily_consumption.time_per_date)
+        daily_time_min =  []
+        for day_time in daily_time:
+            daily_time_min.append(truediv(day_time, 60))        
     except DailyConsumption.DoesNotExist:
-        days, daily_time = [], []
+        days, daily_time_min = [], []
     """
     for daily_consumption in daily_consumptions:
         days.append(jsonDec.decode(daily_consumption.dates))
         daily_time.append(jsonDec.decode(daily_consumption.time_per_date))
     """
-    return days, daily_time
+    return days, daily_time_min
 
 
 # Get info for Video events dispersion within video length chart
