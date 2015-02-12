@@ -463,3 +463,26 @@ REGISTRATION_CODE_LENGTH = ENV_TOKENS.get('REGISTRATION_CODE_LENGTH', 8)
 # REGISTRATION CODES DISPLAY INFORMATION
 INVOICE_CORP_ADDRESS = ENV_TOKENS.get('INVOICE_CORP_ADDRESS', INVOICE_CORP_ADDRESS)
 INVOICE_PAYMENT_INSTRUCTIONS = ENV_TOKENS.get('INVOICE_PAYMENT_INSTRUCTIONS', INVOICE_PAYMENT_INSTRUCTIONS)
+
+
+### LEARNING ANALYTICS APPLICATION ###
+
+FEATURES['ENABLE_LEARNING_ANALYTICS'] = True    # Enable Learning Analytics App
+FEATURES['ENABLE_SQL_TRACKING_LOGS'] = True    # Enable Tracking Logs
+# Backwards compatibility with ENABLE_SQL_TRACKING_LOGS feature flag.
+# In the future, adding the backend to TRACKING_BACKENDS should be enough.
+if FEATURES.get('ENABLE_SQL_TRACKING_LOGS'):
+    TRACKING_BACKENDS.update({
+        'sql': {
+            'ENGINE': 'track.backends.django.DjangoBackend'
+        }
+    })
+    EVENT_TRACKING_BACKENDS.update({
+        'sql': {
+            'ENGINE': 'track.backends.django.DjangoBackend'
+        }
+    })
+
+
+# Add learning analytics to installed apps
+INSTALLED_APPS += ('learning_analytics',)
