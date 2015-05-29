@@ -1,4 +1,4 @@
-<%namespace name="video_events_dispersion" file="/xinsider/video_events_dispersion.js"/>
+<%namespace name="video_events_dispersion" file="/learning_analytics/video_events_dispersion.js"/>
 <script type="text/javascript"> ${video_events_dispersion.body(scatter_array)} </script>
 
 
@@ -17,9 +17,9 @@
     </p>
     <br/>
     % endif
-    <%include file="/xinsider/select_student.html" args="select_id='student_select6', usernames_in=usernames_in" />
+    <%include file="/learning_analytics/select_student.html" args="select_id='student_select6', usernames_in=usernames_in" />
     <h5>Videos</h5>
-          <%include file="/xinsider/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_ids" />
+          <%include file="/learning_analytics/select_video.html" args="select_id='video_select6', video_names=video_names, video_ids=video_ids" />
 </div>
 <!--Div that will hold the stacked bar chart-->
     <div class="graph" id="dispersion_chart">

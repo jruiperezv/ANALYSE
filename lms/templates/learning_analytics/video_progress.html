@@ -1,4 +1,4 @@
-<%namespace name="video_progress" file="/xinsider/video_progress.js"/>
+<%namespace name="video_progress" file="/learning_analytics/video_progress.js"/>
 <script type="text/javascript"> ${video_progress.body(video_prog_json)} </script>
 
 
@@ -16,7 +16,7 @@
 	        This visualization shows in dark blue the percentage of different video watched (it does not count if the same parts are watched several times, the max. is the 100% of the video) and in light blue the percentage of total video watched (total amount of time spent compared to the length of the video in percentage).
 	    </p>
 	    % endif                                                           
-	    <%include file="/xinsider/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
+	    <%include file="/learning_analytics/select_student.html" args="select_id='student_select1', usernames_in=usernames_in" />
 	</div>
 	<!--Div that will hold the stacked bar chart-->
 	<div class="graph" id="video_prog_chart">

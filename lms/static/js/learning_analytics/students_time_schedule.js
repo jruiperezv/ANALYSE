@@ -120,6 +120,8 @@ var LA_student_time_schedule = (function(){
 				}
 				return selectStudent.options[selectStudent.selectedIndex].value;
 		}
+		
+		return USER_ID;
 	};
 	
 	var setSelectCallback = function(){

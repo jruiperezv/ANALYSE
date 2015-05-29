@@ -6,9 +6,8 @@ from django.http import HttpResponse
 import logging
 from django.utils import simplejson
 from django.db.models import Q
-from learning_analytics.analytics import to_iterable_module_id
+from learning_analytics.analytics import to_iterable_module_id, get_module_consumption, get_video_events_info, get_user_video_intervals, get_daily_consumption
 from track.backends.django import TrackingLog
-import math, re
 
 from json import dumps
 import gdata.youtube
@@ -16,15 +15,12 @@ import gdata.youtube.service
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.locator import CourseLocator, BlockUsageLocator
 from opaque_keys.edx.locations import Location, SlashSeparatedCourseKey
-from operator import truediv
 
-from analytics import (get_DB_sort_course_homework, 
-                       get_DB_course_spent_time, 
-                       get_DB_student_grades, 
-                       get_DB_course_section_accesses,
-                       get_DB_course_video_problem_progress)
-from analytics_jose import get_DB_time_schedule
-from data import get_course_key, get_course_module, get_course_students, get_course_grade_cutoff
+from analytics import (get_DB_sort_course_homework, get_DB_course_spent_time, get_DB_student_grades, get_DB_course_section_accesses,
+                       get_DB_course_video_problem_progress, get_DB_time_schedule, videos_problems_in,
+                       ready_for_arraytodatatable, join_video_problem_time)
+
+from operator import truediv
 
 from courseware.access import has_access
 from courseware.masquerade import setup_masquerade
@@ -32,15 +28,9 @@ from courseware.models import StudentModule
 from student.models import CourseEnrollment
 from courseware.courses import get_course_with_access, get_studio_url
 from courseware.views import fetch_reverify_banner_info
-from data import chapter_time_to_js, students_to_js, course_accesses_to_js 
-
+from data import chapter_time_to_js, students_to_js, course_accesses_to_js, get_info_videos_descriptors,get_course_key, get_course_module, get_course_students, get_course_grade_cutoff
 
 from models import *
-# Celery here acts as a simulator.
-from celeryHector import update_visualization_data
-from data_querying import *
-from data_processing import *
-
 
 VISUALIZATIONS_ID = {'LA_vid_prob_prog': 0,
                      'LA_video_progress': 1,
@@ -97,7 +87,7 @@ def index(request, course_id):
           
     # This returns video descriptors in the order they appear on the course
     video_descriptors = videos_problems_in(course)[0]
-    video_durations = get_info_videos(video_descriptors)[2]
+    video_durations = get_info_videos_descriptors(video_descriptors)[2]
       
     video_ids_str = []
     course_video_names = []
@@ -175,6 +165,7 @@ def index(request, course_id):
     context = {'course': course,
                'request': request,
                'user': user,
+               'user_id': user.id,
                'staff_access': staff_access,
                'instructor_access': instructor_access,
                'masquerade': masq,
@@ -216,7 +207,7 @@ def chart_update(request):
         user_id = request.user if user_id == "" else user_id
         chart = int(GET[u'chart'])
         course_key = get_course_key(GET[u'course_id'])  
-        
+
         if chart == VISUALIZATIONS_ID['LA_chapter_time']:            
             cs, st = get_DB_course_spent_time(course_key, student_id=user_id)
             student_spent_time = chapter_time_to_js(cs, st)
@@ -238,7 +229,7 @@ def chart_update(request):
             # Video progress visualization. Video percentage seen total and non-overlapped.
             course = get_course_with_access(user_id, action='load', course_key=course_key, depth=None, check_if_enrolled=False)         
             video_descriptors = videos_problems_in(course)[0]
-            video_durations = get_info_videos(video_descriptors)[2]                          
+            video_durations = get_info_videos_descriptors(video_descriptors)[2]                          
             video_names, avg_video_time, video_percentages = get_module_consumption(user_id, course_key, 'video', 'video_progress')
             if avg_video_time != []:
                 all_video_time_percent = map(truediv, avg_video_time, video_durations)

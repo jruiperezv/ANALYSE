@@ -1,23 +1,30 @@
 
 from courseware.grades import iterate_grades_for
 from courseware.models import StudentModule
+from courseware.courses import get_course_by_id
+from student.models import CourseEnrollment
 from data import *
 from datetime import timedelta
 from django.contrib.auth.models import User
 from django.utils import timezone
-from models import (SortGrades, CourseTime, CourseStruct, 
-                    StudentGrades, CourseAccesses, 
-                    CourseProbVidProgress)
-from student.models import CourseEnrollment
+from models import *
+from classes import *
+
 from django.db.models import Q
 
-import copy
-import datetime
-import ast
+import copy, datetime, ast, math, re
 
+import simplejson as json
+
+from operator import truediv
+from django.utils import simplejson
+import logging
+
+import gdata.youtube
+import gdata.youtube.service
+from track.backends.django import TrackingLog
 
 INACTIVITY_TIME = 600  # Time considered inactivity
-
 
 ##########################################################################
 ######################## COURSE STRUCT ###################################
@@ -651,7 +658,6 @@ def mean_student_grades(std_grade, number):
 def get_DB_student_grades(course_key, student_id=None):
     """
     Return students grades from database
-    
     course_key: course id key
     student: if None, function will return all students
     """
@@ -1244,10 +1250,6 @@ def get_DB_course_section_accesses(course_key, student_id=None):
     
     return course_struct, students_accesses
     
-    
-##############################################################################
-######################### PROBLEMS + VIDEO PROGRESS ##########################
-##############################################################################
 
 def create_course_progress(course_key):
     """
@@ -1597,7 +1599,7 @@ def student_total_video_percent(course, user, video_module_ids = None, video_dur
     stu_video_seen = []
     # Video length seen based on tracking-log events (best possible measure)
     for video_module_id in video_module_ids:
-        [aux_start, aux_end] = video_len_watched(user,video_module_id, last_date)
+        [aux_start, aux_end] = video_len_watched_lastdate(user,video_module_id, last_date)
         interval_sum = 0
         for start, end in zip(aux_start,aux_end):
             interval_sum += end - start
@@ -1898,7 +1900,6 @@ def get_DB_course_video_problem_progress(course_key, student_id=None):
             students_vidprob_progress[prob_progress.student_id].append({'problems': prob_result,
                                                                         'videos': vid_result,
                                                                         'time': time.strftime("%d/%m/%Y")})
-    
     return students_vidprob_progress
 
 
@@ -1915,3 +1916,773 @@ def to_iterable_module_id(block_usage_locator):
     
     return iterable_module_id
 
+##########################################################################
+######################## TIME SCHEDULE ###################################
+##########################################################################
+def time_schedule(course_id):
+    students = get_course_students(course_id)
+    
+    morningTimeStudentCourse = 0
+    afternoonTimeStudentCourse = 0
+    nightTimeStudentCourse = 0
+    
+    for student in students:
+        
+        firstEventOfSeries = None
+        previousEvent = None     
+        
+        morningTimeStudent = 0
+        afternoonTimeStudent = 0
+        nightTimeStudent = 0
+        
+        currentSchedule = ""
+        
+        studentEvents = get_all_events_sql(course_id, student)        
+        
+        for currentEvent in studentEvents:
+            
+            if(currentSchedule == ""):
+                currentSchedule = current_schedule(currentEvent.dtcreated.hour)
+                if(previousEvent == None):                    
+                    firstEventOfSeries = currentEvent
+                else:
+                    firstEventOfSeries = previousEvent
+            else:
+                if((minutes_between(previousEvent.dtcreated,currentEvent.dtcreated) >= 30) or currentSchedule != current_schedule(currentEvent.dtcreated.hour)):                    
+                    if(currentSchedule == "morning"):
+                        morningTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+                    elif(currentSchedule == "afternoon"):
+                        afternoonTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+                    elif(currentSchedule == "night"):
+                        nightTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+                        
+                    currentSchedule = ""
+                            
+            previousEvent = currentEvent
+            
+        if(currentSchedule == "morning"):
+            morningTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+        elif(currentSchedule == "afternoon"):
+            afternoonTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+        elif(currentSchedule == "night"):
+            nightTimeStudent += minutes_between(firstEventOfSeries.dtcreated, previousEvent.dtcreated)
+        
+        morningTimeStudentCourse += morningTimeStudent
+        afternoonTimeStudentCourse += afternoonTimeStudent
+        nightTimeStudentCourse += nightTimeStudent
+        
+        timeSchedule = {'morningTime' : morningTimeStudent,
+                        'afternoonTime' : afternoonTimeStudent,
+                        'nightTime' : nightTimeStudent}
+        
+        # Update database
+        if (TimeSchedule.objects.filter(course_id=course_id, student_id=student.id).count() == 0):
+            
+            TimeSchedule.objects.create(student_id=student.id, course_id=course_id, time_schedule=timeSchedule)
+        else:
+            # Update entry
+            TimeSchedule.objects.filter(course_id=course_id, student_id=student.id).update(time_schedule=timeSchedule,last_calc=datetime.datetime.now())
+    
+    timeScheduleCourse = {'morningTime' : morningTimeStudentCourse,
+                          'afternoonTime' : afternoonTimeStudentCourse,
+                          'nightTime' : nightTimeStudentCourse}
+        
+    if(TimeSchedule.objects.filter(course_id=course_id, student_id=TimeSchedule.ALL_STUDENTS).count() == 0):
+        TimeSchedule.objects.create(student_id=TimeSchedule.ALL_STUDENTS, course_id=course_id, time_schedule=timeScheduleCourse)
+    else:
+        # Update entry
+        TimeSchedule.objects.filter(course_id=course_id, student_id=TimeSchedule.ALL_STUDENTS).update(time_schedule=timeScheduleCourse,
+                                                                                      last_calc=datetime.datetime.now())
+    
+def current_schedule(hour):
+    """
+    Returns if the hour is in the morning, afternoon or night schedule
+    hour: the hour of the time
+    """ 
+    currentSchedule = ""
+    
+    if( 6 < hour and hour < 14 ):
+        currentSchedule = "morning"
+    elif( 14 <= hour and hour < 21):
+        currentSchedule = "afternoon"
+    elif( hour <= 6 or hour == 21 or hour == 22 or hour == 23 or hour == 0):
+        currentSchedule = "night"
+    
+    return currentSchedule
+
+def get_DB_time_schedule(course_key, student_id=None):
+    """
+    Return course section accesses from database
+    
+    course_key: course id key
+    student_id: if None, function will return all students
+    """
+    
+    student_time_schedule = {}
+    if student_id is None:
+        sql_time_schedule = TimeSchedule.objects.filter(course_id=course_key)
+    else:
+        sql_time_schedule = TimeSchedule.objects.filter(course_id=course_key, student_id=student_id)
+        
+    for std_time_schedule in sql_time_schedule:
+        student_time_schedule[std_time_schedule.student_id] = ast.literal_eval(std_time_schedule.time_schedule)
+    
+    return student_time_schedule
+
+##########################################################################
+######## Problem and Video Time Distribution # Video Time Watched ########
+######## Repetition of Video Intervals # Video Event Distribution ########
+#################### Daily Time on Problems and Videos ###################
+##########################################################################
+
+def update_visualization_data(course_key=None):
+    # course_key should be a course_key
+  
+    kw_consumption_module = {
+        'student': '',
+        'course_key': course_key,
+        'module_type': '',
+        'module_key': '',
+        'display_name': '',
+        'percent_viewed': 0,
+        'total_time': 0,
+    }
+    
+    kw_video_intervals = {
+        'student': '',
+        'course_key': course_key,
+        'module_key': '',        
+        'display_name': '',
+        'hist_xaxis': '',
+        'hist_yaxis': '',        
+    }
+    
+    kw_daily_consumption = {
+        'student': '',
+        'course_key': course_key,
+        'module_type': '',
+        'dates': '',
+        'time_per_date': '',        
+    }
+    
+    kw_video_events = {
+        'student': '',
+        'course_key': course_key,
+        'module_key': '',          
+        'display_name': '',
+        'play_events' : '',
+        'pause_events' : '',
+        'change_speed_events' : '',
+        'seek_from_events' : '',
+        'seek_to_events' : '',
+    }
+    
+    if course_key is not None:
+        # update data for the provided course
+        
+        course = get_course_by_id(course_key, depth=None)
+        usernames_in = [x.username.encode('utf-8') for x in CourseEnrollment.users_enrolled_in(course_key)]
+        videos_in, problems_in = videos_problems_in(course)
+        video_names, video_module_keys, video_durations = get_info_videos_descriptors(videos_in)
+        problem_names = [x.display_name_with_default.encode('utf-8') for x in problems_in]
+        problem_ids = [x.location for x in problems_in]
+        
+        # List of UserVideoIntervals
+        users_video_intervals = []
+        # List of UserTimeOnProblems
+        users_time_on_problems = []
+        for username_in in usernames_in:
+            for video_module_key in video_module_keys:
+                interval_start, interval_end, vid_start_time, vid_end_time = find_video_intervals(username_in, video_module_key)
+                disjointed_start, disjointed_end = video_len_watched(interval_start, interval_end)
+                users_video_intervals.append(UserVideoIntervals(username_in, video_module_key, 
+                                                               interval_start, interval_end,
+                                                               vid_start_time, vid_end_time,
+                                                               disjointed_start, disjointed_end))
+            for problem_id in problem_ids:
+                problem_time, days, daily_time = time_on_problem(username_in, problem_id)
+                users_time_on_problems.append(UserTimeOnProblems(username_in, problem_id, 
+                                                                 problem_time, days, daily_time))          
+
+        # ConsumptionModule table data
+        accum_video_percentages = []
+        accum_all_video_time = []
+        accum_problem_time = []
+        for username_in in usernames_in:
+            kw_consumption_module['student'] = username_in
+            #video modules
+            kw_consumption_module['module_type'] = 'video'          
+            # video_percentages (in %), all_video_time (in seconds)
+            low_index = usernames_in.index(username_in)*len(video_names)
+            high_index = low_index + len(video_names)
+            video_percentages, all_video_time = video_consumption(users_video_intervals[low_index:high_index], video_durations)
+            if video_percentages != [] and accum_video_percentages == []:
+                accum_video_percentages = video_percentages
+                accum_all_video_time = all_video_time
+            elif video_percentages != []:
+                for j in range(0, len(accum_all_video_time)):
+                    accum_video_percentages[j] += video_percentages[j]
+                    accum_all_video_time[j] += all_video_time[j]
+            for i in range(0,len(video_percentages)):
+                kw_consumption_module['module_key'] = video_module_keys[i]
+                kw_consumption_module['display_name'] = video_names[i]
+                kw_consumption_module['percent_viewed'] = video_percentages[i]
+                kw_consumption_module['total_time'] = all_video_time[i]
+                try:
+                    new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                    new_entry.percent_viewed = kw_consumption_module['percent_viewed']
+                    new_entry.total_time = kw_consumption_module['total_time']
+                except ConsumptionModule.DoesNotExist:
+                    new_entry = ConsumptionModule(**kw_consumption_module)
+                new_entry.save()
+            #problem modules
+            kw_consumption_module['module_type'] = 'problem'
+            kw_consumption_module['percent_viewed'] = None
+            low_index = usernames_in.index(username_in)*len(problem_names)
+            high_index = low_index + len(problem_names)   
+            time_x_problem = problem_consumption(users_time_on_problems[low_index:high_index])
+            if time_x_problem != [] and accum_problem_time == []:
+                accum_problem_time = time_x_problem
+            elif time_x_problem != []:
+                for j in range(0, len(accum_problem_time)):
+                    accum_problem_time[j] += time_x_problem[j]
+                
+            for i in range(0,len(time_x_problem)):
+                kw_consumption_module['module_key'] = problem_ids[i]
+                kw_consumption_module['display_name'] = problem_names[i]
+                kw_consumption_module['total_time'] = time_x_problem[i]       
+                try:
+                    new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                    new_entry.total_time = kw_consumption_module['total_time']
+                except ConsumptionModule.DoesNotExist:
+                    new_entry = ConsumptionModule(**kw_consumption_module)                    
+                new_entry.save()
+        
+        # average values
+        kw_consumption_module['student'] = '#average'
+        kw_consumption_module['module_type'] = 'video'                
+        for i in range(0, len(accum_video_percentages)):
+            accum_video_percentages[i] = int(round(truediv(accum_video_percentages[i],len(usernames_in)),0))
+            #accum_all_video_time[i] = int(round(truediv(accum_all_video_time[i],len(usernames_in)),0))
+            kw_consumption_module['module_key'] = video_module_keys[i]
+            kw_consumption_module['display_name'] = video_names[i]
+            kw_consumption_module['percent_viewed'] = accum_video_percentages[i]
+            kw_consumption_module['total_time'] = accum_all_video_time[i]
+            try:
+                new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                new_entry.percent_viewed = kw_consumption_module['percent_viewed']
+                new_entry.total_time = kw_consumption_module['total_time']
+            except ConsumptionModule.DoesNotExist:
+                new_entry = ConsumptionModule(**kw_consumption_module)            
+            new_entry.save()
+        kw_consumption_module['module_type'] = 'problem'
+        kw_consumption_module['percent_viewed'] = None
+        for i in range(0, len(accum_problem_time)):
+            # Commented because we do not want the mean here but the total time
+            #accum_problem_time[i] = truediv(accum_problem_time[i],len(usernames_in))
+            kw_consumption_module['module_key'] = problem_ids[i]
+            kw_consumption_module['display_name'] = problem_names[i]
+            kw_consumption_module['total_time'] = accum_problem_time[i]
+            try:
+                new_entry = ConsumptionModule.objects.get(student=kw_consumption_module['student'], module_key=kw_consumption_module['module_key'])
+                new_entry.total_time = kw_consumption_module['total_time']
+            except ConsumptionModule.DoesNotExist:
+                new_entry = ConsumptionModule(**kw_consumption_module)            
+            new_entry.save()
+ 
+        # VideoIntervals table data
+        for video_name, video_id in zip(video_names, video_module_keys):
+            accum_interval_start = []
+            accum_interval_end = []
+            accum_disjointed_start = []
+            accum_disjointed_end = []          
+            kw_video_intervals['module_key'] = video_id
+            kw_video_intervals['display_name'] = video_name
+            for username_in in usernames_in:
+                kw_video_intervals['student'] = username_in      
+                index = video_module_keys.index(video_id) + usernames_in.index(username_in)*len(video_names)
+                interval_start = users_video_intervals[index].interval_start
+                interval_end = users_video_intervals[index].interval_end
+                accum_interval_start += interval_start
+                accum_interval_end += interval_end
+                accum_disjointed_start += users_video_intervals[index].disjointed_start
+                accum_disjointed_end += users_video_intervals[index].disjointed_end                
+                hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
+                kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
+                kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
+                try:
+                    new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                    new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                    new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+                except VideoIntervals.DoesNotExist:
+                    new_entry = VideoIntervals(**kw_video_intervals)        
+                new_entry.save()
+            # Total times these video intervals have been viewed
+            kw_video_intervals['student'] = '#class_total_times'
+            interval_start, interval_end = sort_intervals(accum_interval_start, accum_interval_end)
+            hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
+            kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
+            kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
+            try:
+                new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+            except VideoIntervals.DoesNotExist:
+                new_entry = VideoIntervals(**kw_video_intervals)                    
+            new_entry.save()
+            
+            # Total times these video intervals have been viewed
+            # Every student counts a single time
+            kw_video_intervals['student'] = '#one_stu_one_time'
+            interval_start, interval_end = sort_intervals(accum_disjointed_start, accum_disjointed_end)
+            hist_xaxis, hist_yaxis = histogram_from_intervals(interval_start, interval_end, video_durations[video_module_keys.index(video_id)])
+            kw_video_intervals['hist_xaxis'] = simplejson.dumps(hist_xaxis)
+            kw_video_intervals['hist_yaxis'] = simplejson.dumps(hist_yaxis)
+            try:
+                new_entry = VideoIntervals.objects.get(student=kw_video_intervals['student'], module_key=kw_video_intervals['module_key'])
+                new_entry.hist_xaxis = kw_video_intervals['hist_xaxis']
+                new_entry.hist_yaxis = kw_video_intervals['hist_yaxis']
+            except VideoIntervals.DoesNotExist:
+                new_entry = VideoIntervals(**kw_video_intervals)                    
+            new_entry.save()
+            
+        # DailyConsumption table data
+        accum_vid_days = []
+        accum_vid_daily_time = []
+        accum_prob_days = []
+        accum_prob_daily_time = []
+        for username_in in usernames_in:
+            low_index = usernames_in.index(username_in)*len(video_names)
+            high_index = low_index + len(video_names)
+            video_days, video_daily_time = daily_time_on_videos(users_video_intervals[low_index:high_index])
+            video_days = datelist_to_isoformat(video_days)
+            if len(video_days) > 0:
+                accum_vid_days += video_days
+                accum_vid_daily_time += video_daily_time
+            low_index = usernames_in.index(username_in)*len(problem_names)
+            high_index = low_index + len(problem_names)    
+            problem_days, problem_daily_time = time_on_problems(users_time_on_problems[low_index:high_index])
+            problem_days = datelist_to_isoformat(problem_days)
+            if len(problem_days) > 0:
+                accum_prob_days += problem_days
+                accum_prob_daily_time += problem_daily_time
+            # save to DailyConsumption table
+            kw_daily_consumption['student'] = username_in
+            kw_daily_consumption['module_type'] = 'video'
+            kw_daily_consumption['dates'] = simplejson.dumps(video_days)
+            kw_daily_consumption['time_per_date'] = simplejson.dumps(video_daily_time)
+            try:
+                new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+                new_entry.dates = kw_daily_consumption['dates']
+                new_entry.time_per_date = kw_daily_consumption['time_per_date']
+            except DailyConsumption.DoesNotExist:
+                new_entry = DailyConsumption(**kw_daily_consumption)
+            new_entry.save()            
+            kw_daily_consumption['module_type'] = 'problem'
+            kw_daily_consumption['dates'] = simplejson.dumps(problem_days)
+            kw_daily_consumption['time_per_date'] = simplejson.dumps(problem_daily_time)
+            try:
+                new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+                new_entry.dates = kw_daily_consumption['dates']
+                new_entry.time_per_date = kw_daily_consumption['time_per_date']
+            except DailyConsumption.DoesNotExist:
+                new_entry = DailyConsumption(**kw_daily_consumption)            
+            new_entry.save()
+            
+        kw_daily_consumption['student'] = '#average'
+        problem_days, problem_daily_time = class_time_on(accum_prob_days, accum_prob_daily_time)
+        kw_daily_consumption['dates'] = simplejson.dumps(problem_days)
+        kw_daily_consumption['time_per_date'] = simplejson.dumps(problem_daily_time)
+        try:
+            new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+            new_entry.dates = kw_daily_consumption['dates']
+            new_entry.time_per_date = kw_daily_consumption['time_per_date']
+        except DailyConsumption.DoesNotExist:
+            new_entry = DailyConsumption(**kw_daily_consumption)        
+        new_entry.save()
+        kw_daily_consumption['module_type'] = 'video'
+        video_days, video_daily_time = class_time_on(accum_vid_days, accum_vid_daily_time)
+        kw_daily_consumption['dates'] = simplejson.dumps(video_days)
+        kw_daily_consumption['time_per_date'] = simplejson.dumps(video_daily_time)
+        try:
+            new_entry = DailyConsumption.objects.get(student=kw_daily_consumption['student'], course_key=kw_daily_consumption['course_key'], module_type=kw_daily_consumption['module_type'])
+            new_entry.dates = kw_daily_consumption['dates']
+            new_entry.time_per_date = kw_daily_consumption['time_per_date']
+        except DailyConsumption.DoesNotExist:
+            new_entry = DailyConsumption(**kw_daily_consumption)
+        new_entry.save()            
+            
+        # VideoEvents table data
+        VIDEO_EVENTS = ['play', 'pause', 'change_speed', 'seek_from', 'seek_to']
+        class_events_times = [[],[],[],[],[]]
+        for username_in in usernames_in:
+            kw_video_events['student'] = username_in
+            for video_module_key in video_module_keys:
+                kw_video_events['module_key'] = video_module_key
+                kw_video_events['display_name'] = video_names[video_module_keys.index(video_module_key)]
+                events_times = get_video_events(username_in, video_module_key)
+                if events_times is None:
+                    continue
+                for event in VIDEO_EVENTS:
+                    kw_video_events[event + '_events'] = simplejson.dumps(events_times[VIDEO_EVENTS.index(event)])
+                try:
+                    new_entry = VideoEvents.objects.get(student=kw_video_events['student'], module_key=kw_video_events['module_key'])
+                    new_entry.play_events = kw_video_events['play_events']
+                    new_entry.pause_events = kw_video_events['pause_events']
+                    new_entry.change_speed_events = kw_video_events['change_speed_events']
+                    new_entry.seek_from_events = kw_video_events['seek_from_events']
+                    new_entry.seek_to_events = kw_video_events['seek_to_events']                    
+                except VideoEvents.DoesNotExist:
+                    new_entry = VideoEvents(**kw_video_events)                
+                new_entry.save()
+ 
+    else:
+        pass
+    
+############################# VIDEO EVENTS ###############################
+ 
+
+# Given a video descriptor returns ORDERED the video intervals a student has seen
+# A timestamp of the interval points is also recorded.
+def find_video_intervals(student, video_module_id):
+    INVOLVED_EVENTS = [
+        'play_video',
+        'seek_video',
+    ]
+    #event flags to check for duplicity
+    play_flag = False # True: last event was a play_videoid
+    seek_flag = False # True: last event was a seek_video
+    saved_video_flag = False # True: last event was a saved_video_position
+    
+    interval_start = []
+    interval_end = []
+    vid_start_time = [] # timestamp for interval_start
+    vid_end_time = []   # timestamp for interval_end
+    
+    iter_video_module_id = to_iterable_module_id(video_module_id)
+    #shortlist criteria
+    str1 = ';_'.join(x for x in iter_video_module_id if x is not None)
+    #DEPRECATED TAG i4x                str2 = ''.join([video_module_id.DEPRECATED_TAG,':;_;_',str1])
+    cond1   = Q(event_type__in=INVOLVED_EVENTS, event__contains=video_module_id.html_id())
+    cond2_1 = Q(event_type__contains = str1)
+    cond2_2 = Q(event_type__contains='save_user_state', event__contains='saved_video_position')
+    shorlist_criteria = Q(username=student) & (cond1 | (cond2_1 & cond2_2))
+    
+    events = TrackingLog.objects.filter(shorlist_criteria)
+    if events.count() <= 0:
+        # return description: [interval_start, interval_end, vid_start_time, vid_end_time]
+        # return list types: [int, int, datetime.date, datetime.date]
+        return [0], [0], [], []
+    #guarantee the list of events starts with a play_video
+    while events[0].event_type != 'play_video':
+        events = events[1:]
+        if len(events) < 2:
+            return [0], [0], [], []
+    for event in events:
+        if event.event_type == 'play_video':
+            if play_flag: # two consecutive play_video events. Second is the relevant one (loads saved_video_position).
+                interval_start.pop() #removes last element
+                vid_start_time.pop()
+            if not seek_flag:
+                interval_start.append(eval(event.event)['currentTime'])
+                vid_start_time.append(event.time)
+            play_flag = True
+            seek_flag = False
+            saved_video_flag = False
+        elif event.event_type == 'seek_video':
+            if seek_flag:
+                interval_start.pop()
+                vid_start_time.pop()
+            elif play_flag:
+                interval_end.append(eval(event.event)['old_time'])
+                vid_end_time.append(event.time)
+            interval_start.append(eval(event.event)['new_time'])
+            vid_start_time.append(event.time)
+            play_flag = False
+            seek_flag = True
+            saved_video_flag = False
+        else: # .../save_user_state
+            if play_flag:
+                interval_end.append(hhmmss_to_secs(eval(event.event)['POST']['saved_video_position'][0]))
+                vid_end_time.append(event.time)
+            elif seek_flag:
+                interval_start.pop()
+                vid_start_time.pop()
+            play_flag = False
+            seek_flag = False
+            saved_video_flag = True
+    interval_start = [int(math.floor(val)) for val in interval_start]
+    interval_end   = [int(math.floor(val)) for val in interval_end]
+    #remove empty intervals (start equals end) and guarantee start < end 
+    interval_start1 = []
+    interval_end1 = []
+    vid_start_time1 = []
+    vid_end_time1 = []
+    for start_val, end_val, start_time, end_time in zip(interval_start, interval_end, vid_start_time, vid_end_time):
+        if start_val < end_val:
+            interval_start1.append(start_val)
+            interval_end1.append(end_val)
+            vid_start_time1.append(start_time)
+            vid_end_time1.append(end_time)
+        elif start_val > end_val: # case play from video end
+            interval_start1.append(0)
+            interval_end1.append(end_val)
+            vid_start_time1.append(start_time)
+            vid_end_time1.append(end_time)            
+    # sorting intervals
+    if len(interval_start1) <= 0:
+        return [0], [0], [], []
+    [interval_start, interval_end, vid_start_time, vid_end_time] = zip(*sorted(zip(interval_start1, interval_end1, vid_start_time1, vid_end_time1)))
+    interval_start = list(interval_start)
+    interval_end = list(interval_end)
+    vid_start_time = list(vid_start_time)
+    vid_end_time = list(vid_end_time)
+    
+    # return list types: [int, int, datetime.date, datetime.date]
+    return interval_start, interval_end, vid_start_time, vid_end_time    
+    
+
+# Obtain list of events relative to videos and their relative position within the video
+# For a single student
+# CT Current time
+# Return format: [[CTs for play], [CTs for pause], [CTs for speed changes], [old_time list], [new_time list]]
+# Returns None if there are no events matching criteria
+def get_video_events(student, video_module_id):
+  
+    INVOLVED_EVENTS = [
+        'play_video',
+        'pause_video',
+        'speed_change_video',
+        'seek_video'
+    ]
+
+    #shortlist criteria
+    cond1 = Q(event_type__in=INVOLVED_EVENTS, event__contains=video_module_id.html_id())
+    shorlist_criteria = Q(username=student) & cond1
+    
+    events = TrackingLog.objects.filter(shorlist_criteria)
+    if events.count() == 0:
+        return None
+    
+    # List of lists. A list for every event type containing the video relative time    
+    events_times = []
+    for event in INVOLVED_EVENTS + ['list for seek new_time']:
+        events_times.append([])
+        
+    for event in events:
+        currentTime = get_current_time(event)
+        events_times[INVOLVED_EVENTS.index(event.event_type)].append(currentTime[0])
+        if len(currentTime) > 1: # save new_time for seek_video event
+            events_times[-1].append(currentTime[1])
+    
+    return events_times
+
+    
+##########################################################################
+############################ PROBLEM EVENTS ##############################
+##########################################################################  
+    
+
+# Computes the time a student has dedicated to a problem in seconds
+#TODO Does it make sense to change the resolution to minutes?
+# Returns also daily time spent on a problem by the user
+def time_on_problem(student, problem_module_id):
+    INVOLVED_EVENTS = [
+        'seq_goto',
+        'seq_prev',
+        'seq_next',
+        'page_close'
+    ]
+    interval_start = []
+    interval_end = []
+    
+    iter_problem_module_id = to_iterable_module_id(problem_module_id)
+    #shortlist criteria
+    str1 = ';_'.join(x for x in iter_problem_module_id if x is not None)
+    #DEPRECATED TAG i4x                str2 = ''.join([problem_module_id.DEPRECATED_TAG,':;_;_',str1])
+    cond1 = Q(event_type__in=INVOLVED_EVENTS)
+    cond2 = Q(event_type__contains = str1) & Q(event_type__contains = 'problem_get')
+    shorlist_criteria = Q(username=student) & (cond1 | cond2)
+    
+    events = TrackingLog.objects.filter(shorlist_criteria)
+    if events.count() <= 0:
+        # return description: [problem_time, days, daily_time]
+        # return list types: [int, datetime.date, int]
+        return 0, [], 0
+    
+    # Ensure pairs problem_get - INVOLVED_EVENTS (start and end references)
+    event_pairs = []
+    # Flag to control the pairs. get_problem = True means get_problem event expected
+    get_problem = True
+    for event in events:
+        if get_problem: # looking for a get_problem event
+            if re.search('problem_get$',event.event_type) is not None:
+                event_pairs.append(event.time)
+                get_problem = False
+        else:# looking for an event in INVOLVED_EVENTS
+            if event.event_type in INVOLVED_EVENTS: 
+                event_pairs.append(event.time)
+                get_problem = True
+    problem_time = 0
+    """
+    if len(event_pairs) > 0:
+        for index in range(0, len(event_pairs), 2):
+    """
+    i = 0
+    while i < len(event_pairs) - 1:        
+        time_fraction = (event_pairs[i+1] - event_pairs[i]).total_seconds()
+        #TODO Bound time fraction to a reasonable value. Here 2 hours. What would be a reasonable maximum?
+        time_fraction = 2*60*60 if time_fraction > 2*60*60 else time_fraction
+        problem_time += time_fraction
+        i += 2
+            
+    # Daily info
+    days = [event_pairs[0].date()] if len(event_pairs) >= 2 else []
+#    for event in event_pairs:
+#        days.append(event.date())
+    daily_time = [0]
+    i = 0
+    while i < len(event_pairs) - 1:
+        if days[-1] == event_pairs[i].date(): # another interval to add to the same day
+            if event_pairs[i+1].date() == event_pairs[i].date(): # the interval belongs to a single day
+                daily_time[-1] += (event_pairs[i+1] - event_pairs[i]).total_seconds()
+            else: # interval extrems lay on different days. E.g. starting on day X at 23:50 and ending the next day at 0:10. 
+                daily_time[-1] += 24*60*60 - event_pairs[i].hour*60*60 - event_pairs[i].minute*60 - event_pairs[i].second
+                days.append(event_pairs[i+1].date())
+                daily_time.append(event_pairs[i+1].hour*60*60 + event_pairs[i+1].minute*60 + event_pairs[i+1].second)
+        else:
+            days.append(event_pairs[i].date())
+            daily_time.append(0)
+            if event_pairs[i+1].date() == event_pairs[i].date(): # the interval belongs to a single day
+                daily_time[-1] += (event_pairs[i+1] - event_pairs[i]).total_seconds()
+            else: # interval extrems lay on different days. E.g. starting on day X at 23:50 and ending the next day at 0:10.
+                daily_time[-1] += 24*60*60 - event_pairs[i].hour*60*60 - event_pairs[i].minute*60 - event_pairs[i].second
+                days.append(event_pairs[i+1].date())
+                daily_time.append(event_pairs[i+1].hour*60*60 + event_pairs[i+1].minute*60 + event_pairs[i+1].second)            
+        i += 2
+    return problem_time, days, daily_time
+
+# Get info for Video time watched chart
+def get_module_consumption(username, course_id, module_type, visualization):
+  
+    #shortlist criteria
+    shortlist = Q(student=username, course_key=course_id, module_type = module_type)
+    consumption_modules = ConsumptionModule.objects.filter(shortlist)
+    module_names = []
+    total_times = []    
+    video_percentages = []
+    for consumption_module in consumption_modules:
+        module_names.append(consumption_module.display_name)
+        
+        if (visualization == 'total_time_vid_prob'):   
+            # From minutes to seconds              
+            total_times.append(round(truediv(consumption_module.total_time,60),2))
+            
+        elif (visualization == 'video_progress'):                           
+            video_percentages.append(consumption_module.percent_viewed)            
+            if(username == '#average'):
+                # Dividing total time between the number of students to get avg time on video which is used in video progress
+                total_times.append(int(round(truediv(consumption_module.total_time,len(CourseEnrollment.users_enrolled_in(course_id))),0)))
+            else:
+                total_times.append(consumption_module.total_time)
+            
+    if sum(total_times) <= 0:
+        total_times = []
+        video_percentages = []
+  
+    return module_names, total_times, video_percentages
+
+
+# Get info for Daily time on video and problems chart
+# Daily time spent on video and problem resources
+def get_daily_consumption(username, course_id, module_type):
+
+    #shortlist criteria
+    #shortlist = Q(student=username, course_key=course_id, module_type = module_type)
+    try:
+        daily_consumption = DailyConsumption.objects.get(student=username, course_key=course_id, module_type = module_type)
+        jsonDec = json.decoder.JSONDecoder()
+        days = jsonDec.decode(daily_consumption.dates)
+        # From minutes to seconds
+        daily_time = jsonDec.decode(daily_consumption.time_per_date)
+        daily_time_min =  []
+        for day_time in daily_time:
+            daily_time_min.append(truediv(day_time, 60))        
+    except DailyConsumption.DoesNotExist:
+        days, daily_time_min = [], []
+    """
+    for daily_consumption in daily_consumptions:
+        days.append(jsonDec.decode(daily_consumption.dates))
+        daily_time.append(jsonDec.decode(daily_consumption.time_per_date))
+    """
+    return days, daily_time_min
+
+
+# Get info for Video events dispersion within video length chart
+# At what time the user did what along the video?
+def get_video_events_info(username, video_id):
+  
+    if username == '#average':
+        shortlist = Q(module_key = video_id)
+    else:
+        shortlist = Q(student=username, module_key = video_id)
+    video_events = VideoEvents.objects.filter(shortlist)
+    jsonDec = json.decoder.JSONDecoder()
+    events_times = [[],[],[],[],[]]
+    for user_video_events in video_events:
+        events_times[0] += jsonDec.decode(user_video_events.play_events)
+        events_times[1] += jsonDec.decode(user_video_events.pause_events)
+        events_times[2] += jsonDec.decode(user_video_events.change_speed_events)
+        events_times[3] += jsonDec.decode(user_video_events.seek_from_events)
+        events_times[4] += jsonDec.decode(user_video_events.seek_to_events)
+  
+    if events_times != [[],[],[],[],[]]:
+        scatter_array = video_events_to_scatter_chart(events_times)
+    else:
+        scatter_array = json.dumps(None)
+    
+    return scatter_array
+    
+
+# Get info for Repetitions per video intervals chart
+# How many times which video intervals have been viewed?
+def get_user_video_intervals(username, video_id):
+
+    try:
+        video_intervals = VideoIntervals.objects.get(student=username, module_key = video_id)
+    except VideoIntervals.DoesNotExist:
+        return json.dumps(None)
+    
+    jsonDec = json.decoder.JSONDecoder()
+    hist_xaxis = jsonDec.decode(video_intervals.hist_xaxis)
+    hist_yaxis = jsonDec.decode(video_intervals.hist_yaxis)
+    num_gridlines = 0
+    vticks = []
+    
+    # Interpolation to represent one-second-resolution intervals
+    if sum(hist_yaxis) > 0:
+        maxRepetitions = max(hist_yaxis)
+        num_gridlines = maxRepetitions + 1 if maxRepetitions <= 3 else 5
+        vticks = determine_repetitions_vticks(maxRepetitions)
+        ordinates_1s = []
+        abscissae_1s = list(range(0,hist_xaxis[-1]+1))
+        #ordinates_1s.append([])
+        for j in range(0,len(hist_xaxis)-1):
+            while len(ordinates_1s) <= hist_xaxis[j+1]:
+                ordinates_1s.append(hist_yaxis[j])
+                
+        # array to be used in the arrayToDataTable method of Google Charts
+        # actually a list of lists where the first one represent column names and the rest the rows
+        video_intervals_array = [['Time (s)', 'Times']]
+        for abscissa_1s, ordinate_1s in zip(abscissae_1s, ordinates_1s):
+            video_intervals_array.append([str(abscissa_1s), ordinate_1s])
+    else:
+        video_intervals_array = None
+        
+    interval_chart_data = {
+        'video_intervals_array': video_intervals_array,
+        'num_gridlines': num_gridlines,
+        'vticks': vticks,
+    }    
+    
+    return json.dumps(interval_chart_data)

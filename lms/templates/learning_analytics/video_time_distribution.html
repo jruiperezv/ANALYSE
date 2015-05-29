@@ -1,4 +1,4 @@
-<%namespace name="total_video_time" file="/xinsider/all_video_time.js"/>           
+<%namespace name="total_video_time" file="/learning_analytics/all_video_time.js"/>           
 <script type="text/javascript"> ${total_video_time.body(video_distrib_json)} </script>            
             
 <section>
@@ -18,7 +18,7 @@
         % endif
         
         
-        <%include file="/xinsider/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
+        <%include file="/learning_analytics/select_student.html" args="select_id='student_select2', usernames_in=usernames_in" />
     </div>
     <!--Div that will hold the stacked bar chart-->
     <div class="graph2" id="all_video_time">

@@ -1,4 +1,4 @@
-<%namespace name="video_daily" file="/xinsider/video_daily.js"/>
+<%namespace name="video_daily" file="/learning_analytics/video_daily.js"/>
 <script type="text/javascript"> ${video_daily.body(vid_and_prob_daily_time)} </script>
 
 
@@ -16,7 +16,7 @@
         This visualization shows the time that you have spent doing problems (green) and watching videos (blue) per each day of the course.
     </p>
     % endif
-    <%include file="/xinsider/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
+    <%include file="/learning_analytics/select_student.html" args="select_id='student_select5', usernames_in=usernames_in" />            
 </div>
 <!--Div that will hold the stacked bar chart-->
     <div class="graph" id="vid_prob_daily_chart">

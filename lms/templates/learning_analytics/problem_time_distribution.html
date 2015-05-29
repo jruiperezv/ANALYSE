@@ -1,4 +1,4 @@
-<%namespace name="total_problem_time" file="/xinsider/per_problem_time.js"/>
+<%namespace name="total_problem_time" file="/learning_analytics/per_problem_time.js"/>
 
 <script type="text/javascript"> ${total_problem_time.body(problem_distrib_json)} </script>
 
@@ -18,7 +18,7 @@
 	       % endif
 	       
 	       
-	       <%include file="/xinsider/select_student.html" args="select_id='student_select3', usernames_in=usernames_in" />    
+	       <%include file="/learning_analytics/select_student.html" args="select_id='student_select3', usernames_in=usernames_in" />    
 	   </div>
 	   <!--Div that will hold the stacked bar chart-->
 	   <div class="graph2" id="per_problem_time">

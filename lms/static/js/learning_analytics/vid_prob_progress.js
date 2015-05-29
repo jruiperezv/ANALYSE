@@ -127,38 +127,37 @@ var LA_vid_prob_prog = (function(){
 	};
 	
 	var getSelectedUser = function(){
-		var selectOptions = document.getElementById('vid_prob_prog_options');
-		var selectStudent = document.getElementById('vid_prob_prog_student');
-		var selectGroup = document.getElementById('vid_prob_prog_group');
-		var selection = selectOptions.options[selectOptions.selectedIndex].value;
-			
-		switch(selection){
-			case "all":
-				if(SU_ACCESS){
+		if(SU_ACCESS){
+			var selectOptions = document.getElementById('vid_prob_prog_options');
+			var selectStudent = document.getElementById('vid_prob_prog_student');
+			var selectGroup = document.getElementById('vid_prob_prog_group');
+			var selection = selectOptions.options[selectOptions.selectedIndex].value;
+				
+			switch(selection){
+				case "all":
 					selectStudent.style.display="none";
 					selectGroup.style.display="none";
-				}
-				return ALL_STUDENTS;
-			case "student":
-				if(SU_ACCESS){
+					return ALL_STUDENTS;
+				case "student":
 					selectStudent.style.display="";
 					selectGroup.style.display="none";
-				}
-				return selectStudent.options[selectStudent.selectedIndex].value;
-			case "group":
-				if(SU_ACCESS){
+					return selectStudent.options[selectStudent.selectedIndex].value;
+				case "group":
 					selectStudent.style.display="none";
 					selectGroup.style.display="";
-				}
-				switch(selectGroup.options[selectGroup.selectedIndex].value){
-					case "prof":
-						return PROF_GROUP;
-					case "pass":
-						return PASS_GROUP;
-					case "fail":
-						return FAIL_GROUP;
-				}
+					switch(selectGroup.options[selectGroup.selectedIndex].value){
+						case "prof":
+							return PROF_GROUP;
+						case "pass":
+							return PASS_GROUP;
+						case "fail":
+							return FAIL_GROUP;
+					}
+			}		
+		}else{
+			return USER_ID;
 		}
+
 	};
 	
 	var setSelectCallback = function(){

@@ -15,6 +15,7 @@
 <script type="text/javascript"> 
 
 var COURSE_ID='${course_id}';
+var USER_ID='${user.id}';
 
 function change_section(clicked_id) {
 	
@@ -70,7 +71,7 @@ function reset_elements()
 
 </script>
 
-<%include file="/xinsider/update_chart.html" />
+<%include file="/learning_analytics/update_chart.html" />
 </%block>
 
 <%block name="pagetitle">${_("{course_number} Learning Analytics").format(course_number=course.display_number_with_default)}</%block>
@@ -128,7 +129,7 @@ function reset_elements()
 	            </div>
 			</div>
 		</div>
-		<%include file="/xinsider/select_adjustments.html" />
+		<%include file="/learning_analytics/select_adjustments.html" />
 	</div>
 </div>
 </body>

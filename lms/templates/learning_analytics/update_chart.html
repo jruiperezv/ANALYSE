@@ -53,7 +53,7 @@
 	// code to run if the request succeeds;
 	// the response is passed to the function
 	success: function( json ) {
-	    console.log("Received:\n" + json);
+	    //console.log("Received:\n" + json);
 	    reDrawChart(chart_number, json);
 	},
     
@@ -67,7 +67,7 @@
     
 	// code to run regardless of success or failure
 	complete: function( xhr, status ) {
-	    console.log( "The request is complete! Status: " + status);
+	    //console.log( "The request is complete! Status: " + status);
 	}      
       });
     }
