@@ -590,7 +590,8 @@ def compare_locations(loc1, loc2, course_key=None):
         
     return lockey1.to_deprecated_string() == lockey2.to_deprecated_string()
 
-# Retrieve video-length via Youtube given its ID
+"""
+# OLD FUNCTION WITH API V2 Retrieve video-length via Youtube given its ID
 def id_to_length(youtube_id):
   
     yt_service = gdata.youtube.service.YouTubeService()
@@ -604,6 +605,37 @@ def id_to_length(youtube_id):
     # Maximum video position registered in the platform differs around 1s
     # wrt youtube duration. Thus 1 is subtracted to compensate.
     return eval(entry.media.duration.seconds) - 1
+"""
+
+# Retrieve video-length via Youtube given its ID
+def id_to_length(youtube_id):
+  
+    DEVELOPER_KEY = "AIzaSyBNs7EgFFJnzIse1ccGw6dbhIwd5Uycc4M"
+    YOUTUBE_API_SERVICE_NAME = "youtube"
+    YOUTUBE_API_VERSION = "v3"
+
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
+      developerKey=DEVELOPER_KEY)
+
+    search_response = youtube.videos().list(
+      id=youtube_id,
+      part="contentDetails",
+      maxResults=1
+    ).execute()
+    
+    video_duration = search_response['items'][0]["contentDetails"]["duration"]
+
+    duration_iso_8601 = ''
+    
+    m = re.match('PT((?P<hours>[0-9]{1,2})H)?((?P<minutes>[0-9]{1,2})M)?(?P<seconds>[0-9]{1,2})S', video_duration)
+    hours = int(m.group('hours')) if m.group('hours') is not None else 0
+    minutes = int(m.group('minutes')) if m.group('minutes') is not None else 0
+    seconds = int(m.group('seconds')) if m.group('seconds') is not None else 0
+
+    # Maximum video position registered in the platform differs around 1s
+    # wrt youtube duration. Thus 1 is subtracted to compensate.
+    #return eval(entry.media.duration.seconds) - 1
+    return hours*60*60+minutes*60+seconds - 1
 
 # Returns info of videos in course.
 # Specifically returns their names, durations and module_ids
