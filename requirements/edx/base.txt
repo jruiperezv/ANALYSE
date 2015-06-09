@@ -149,3 +149,4 @@ edx-submissions==0.0.8
 
 # learning analytics
 gdata==2.0.18
+google-api-python-client==1.4.0
