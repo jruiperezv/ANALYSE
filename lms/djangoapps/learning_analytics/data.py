@@ -616,7 +616,9 @@ def id_to_length(youtube_id):
 
     youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, 
       developerKey=DEVELOPER_KEY)
-
+    
+    #print(youtube_id)
+    
     search_response = youtube.videos().list(
       id=youtube_id,
       part="contentDetails",
@@ -624,10 +626,11 @@ def id_to_length(youtube_id):
     ).execute()
     
     video_duration = search_response['items'][0]["contentDetails"]["duration"]
-
+    #print(video_duration)
+    #print("\n\n\n")
     duration_iso_8601 = ''
     
-    m = re.match('PT((?P<hours>[0-9]{1,2})H)?((?P<minutes>[0-9]{1,2})M)?(?P<seconds>[0-9]{1,2})S', video_duration)
+    m = re.match('PT((?P<hours>[0-9]{1,2})H)?((?P<minutes>[0-9]{1,2})M)?((?P<seconds>[0-9]{1,2})S)?', video_duration)
     hours = int(m.group('hours')) if m.group('hours') is not None else 0
     minutes = int(m.group('minutes')) if m.group('minutes') is not None else 0
     seconds = int(m.group('seconds')) if m.group('seconds') is not None else 0
