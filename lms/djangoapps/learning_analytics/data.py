@@ -32,6 +32,7 @@ from django.utils import simplejson
 
 import gdata.youtube
 import gdata.youtube.service
+from apiclient.discovery import build
 
 def get_courses_list():
     """
